@@ -1,0 +1,812 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="theme-color" content="#07080d" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta
+      name="description"
+      content="Voice Memory — speak notes, organize them into subscriptions, and play them back. Saved only on this device."
+    />
+    <title>Voice Memory</title>
+    <link rel="icon" href='data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">  <defs>    <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">      <stop offset="0" stop-color="#8b7cff"/>      <stop offset="1" stop-color="#3ee0c0"/>    </linearGradient>  </defs>  <rect width="64" height="64" rx="16" fill="#07080d"/>  <rect x="6" y="6" width="52" height="52" rx="14" fill="url(#g)"/>  <path fill="#fff" d="M32 38.2a6.2 6.2 0 0 0 6.2-6.2V18.8a6.2 6.2 0 1 0-12.4 0V32a6.2 6.2 0 0 0 6.2 6.2Zm12.4-6.2a3.1 3.1 0 0 0-6.2 0 6.2 6.2 0 1 1-12.4 0 3.1 3.1 0 0 0-6.2 0 12.4 12.4 0 0 0 10.8 12.3V50h-5.4a3.1 3.1 0 0 0 0 6.2h12.4a3.1 3.1 0 0 0 0-6.2h-5.4v-5.7A12.4 12.4 0 0 0 44.4 32Z"/></svg>' />
+    <style>
+:root {
+  --bg: #07080d;
+  --panel: rgba(18, 20, 32, 0.78);
+  --line: rgba(255, 255, 255, 0.08);
+  --text: #f4f2ff;
+  --muted: #9a97b0;
+  --accent: #8b7cff;
+  --accent-2: #3ee0c0;
+  --danger: #ff6b8a;
+  --mic: #7c6cff;
+  --shadow: 0 24px 80px rgba(0, 0, 0, 0.45);
+  --safe-bottom: max(18px, env(safe-area-inset-bottom));
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  min-height: 100%;
+  background: var(--bg);
+  color: var(--text);
+  font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+
+body {
+  min-height: 100dvh;
+  padding: 18px 18px calc(220px + var(--safe-bottom));
+}
+
+.bg {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  background:
+    radial-gradient(900px 480px at 50% -10%, rgba(124, 108, 255, 0.28), transparent 60%),
+    radial-gradient(700px 380px at 90% 80%, rgba(62, 224, 192, 0.1), transparent 55%),
+    var(--bg);
+}
+
+.top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.brand {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+.mark {
+  width: 42px;
+  height: 42px;
+  border-radius: 14px;
+  background: linear-gradient(145deg, var(--accent), var(--accent-2));
+  box-shadow: 0 0 28px rgba(124, 108, 255, 0.45);
+}
+
+h1 {
+  margin: 0;
+  font-size: 1.35rem;
+  letter-spacing: -0.03em;
+}
+
+.tag,
+.hint,
+.status,
+.muted {
+  color: var(--muted);
+}
+
+.tag {
+  margin: 2px 0 0;
+  font-size: 0.85rem;
+}
+
+.top-actions {
+  display: flex;
+  gap: 8px;
+}
+
+button {
+  font: inherit;
+  cursor: pointer;
+  border: 0;
+}
+
+.ghost,
+.solid,
+.icon-btn {
+  border-radius: 999px;
+  padding: 8px 14px;
+  color: var(--text);
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--line);
+}
+
+.solid {
+  background: linear-gradient(135deg, var(--accent), #5b4dff);
+  border-color: transparent;
+}
+
+.ghost:active,
+.solid:active,
+.icon-btn:active,
+.chip:active,
+.mic:active {
+  transform: scale(0.98);
+}
+
+.subs {
+  margin-top: 18px;
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding-bottom: 4px;
+  scrollbar-width: none;
+}
+
+.subs::-webkit-scrollbar {
+  display: none;
+}
+
+.chips {
+  display: flex;
+  gap: 8px;
+}
+
+.chip {
+  flex: 0 0 auto;
+  border-radius: 999px;
+  padding: 8px 14px;
+  color: var(--text);
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--line);
+}
+
+.chip.active {
+  background: rgba(139, 124, 255, 0.22);
+  border-color: rgba(139, 124, 255, 0.55);
+}
+
+.chip.add {
+  color: var(--accent-2);
+}
+
+.feed {
+  margin-top: 16px;
+  display: grid;
+  gap: 12px;
+}
+
+.empty,
+.note {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 20px;
+  padding: 16px 16px 14px;
+  box-shadow: var(--shadow);
+  backdrop-filter: blur(16px);
+}
+
+.empty {
+  text-align: center;
+  color: var(--muted);
+  padding: 36px 18px;
+}
+
+.note-meta {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 0.78rem;
+  color: var(--muted);
+  margin-bottom: 8px;
+}
+
+.note p {
+  margin: 0;
+  font-size: 1.05rem;
+  line-height: 1.45;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.note-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.icon-btn {
+  padding: 8px 12px;
+  font-size: 0.85rem;
+}
+
+.icon-btn.danger {
+  color: var(--danger);
+}
+
+.dock {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  padding: 8px 18px var(--safe-bottom);
+  display: grid;
+  justify-items: center;
+  gap: 8px;
+  background: linear-gradient(180deg, transparent, rgba(7, 8, 13, 0.94) 28%);
+}
+
+.hint,
+.live,
+.status {
+  margin: 0;
+  text-align: center;
+}
+
+.live {
+  max-width: 42rem;
+  color: var(--accent-2);
+  font-size: 1rem;
+  min-height: 1.3em;
+}
+
+.mic {
+  width: 148px;
+  height: 148px;
+  border-radius: 50%;
+  background: transparent;
+  position: relative;
+  margin: 4px 0;
+}
+
+.mic-ring {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  border: 2px solid rgba(139, 124, 255, 0.35);
+  box-shadow: 0 0 0 12px rgba(124, 108, 255, 0.08);
+}
+
+.mic-core {
+  position: absolute;
+  inset: 18px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: radial-gradient(circle at 35% 30%, #b9b0ff, var(--mic) 55%, #4a3fd6);
+  box-shadow:
+    0 18px 40px rgba(80, 60, 220, 0.45),
+    inset 0 1px 0 rgba(255, 255, 255, 0.35);
+}
+
+.mic svg {
+  width: 54px;
+  height: 54px;
+  fill: white;
+}
+
+.mic.listening .mic-ring {
+  animation: pulse 1.2s ease-out infinite;
+  border-color: var(--accent-2);
+}
+
+.mic.listening .mic-core {
+  background: radial-gradient(circle at 35% 30%, #9ff3e2, #1db894 58%, #0e7a66);
+}
+
+.mic.unsupported {
+  opacity: 0.45;
+}
+
+@keyframes pulse {
+  0% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1.16);
+    opacity: 0;
+  }
+}
+
+.toast {
+  position: fixed;
+  left: 50%;
+  bottom: 230px;
+  transform: translateX(-50%);
+  background: #161824;
+  border: 1px solid var(--line);
+  color: var(--text);
+  padding: 10px 14px;
+  border-radius: 12px;
+  z-index: 5;
+}
+
+dialog {
+  border: 1px solid var(--line);
+  border-radius: 20px;
+  background: #12141f;
+  color: var(--text);
+  width: min(92vw, 420px);
+  padding: 20px;
+}
+
+dialog::backdrop {
+  background: rgba(0, 0, 0, 0.55);
+}
+
+dialog h2 {
+  margin: 0 0 6px;
+}
+
+dialog p {
+  margin: 0 0 14px;
+  color: var(--muted);
+}
+
+dialog input {
+  width: 100%;
+  padding: 12px 14px;
+  border-radius: 12px;
+  border: 1px solid var(--line);
+  background: #0b0c14;
+  color: var(--text);
+  font: inherit;
+}
+
+.dialog-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 16px;
+}
+
+.banner {
+  background: rgba(255, 107, 138, 0.12);
+  border: 1px solid rgba(255, 107, 138, 0.35);
+  color: #ffd3dc;
+  padding: 12px 14px;
+  border-radius: 14px;
+}
+
+@media (min-width: 720px) {
+  body {
+    max-width: 720px;
+    margin: 0 auto;
+  }
+}
+
+    </style>
+  </head>
+  <body>
+    <div class="bg" aria-hidden="true"></div>
+
+    <header class="top">
+      <div class="brand">
+        <span class="mark" aria-hidden="true"></span>
+        <div>
+          <h1>Voice Memory</h1>
+          <p class="tag">Speak it. Save it. Hear it back.</p>
+        </div>
+      </div>
+      <div class="top-actions">
+        <button type="button" class="ghost" id="export-txt" title="Export notes as text">
+          TXT
+        </button>
+        <button type="button" class="ghost" id="export-json" title="Export notes as JSON">
+          JSON
+        </button>
+      </div>
+    </header>
+
+    <section class="subs" aria-label="Subscriptions">
+      <div class="chips" id="chips"></div>
+      <button type="button" class="chip add" id="add-sub">+ New</button>
+    </section>
+
+    <main class="feed" id="feed" aria-live="polite"></main>
+
+    <div class="toast" id="toast" hidden></div>
+
+    <footer class="dock">
+      <p class="hint" id="hint">Tap the mic, then speak. Chrome or Edge works best.</p>
+      <p class="live" id="live" hidden></p>
+      <button type="button" class="mic" id="mic" aria-pressed="false" aria-label="Start listening">
+        <span class="mic-ring"></span>
+        <span class="mic-core">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path
+              d="M12 14.5a3.5 3.5 0 0 0 3.5-3.5V6a3.5 3.5 0 1 0-7 0v5a3.5 3.5 0 0 0 3.5 3.5Zm7-3.5a1 1 0 1 0-2 0 5 5 0 0 1-10 0 1 1 0 1 0-2 0 7 7 0 0 0 6 6.93V20H9a1 1 0 1 0 0 2h6a1 1 0 1 0 0-2h-2v-2.07A7 7 0 0 0 19 11Z"
+            />
+          </svg>
+        </span>
+      </button>
+      <p class="status" id="status">Ready</p>
+    </footer>
+
+    <dialog id="sub-dialog">
+      <form method="dialog" id="sub-form">
+        <h2>New subscription</h2>
+        <p>A named list for notes you want to keep together.</p>
+        <input
+          id="sub-name"
+          name="name"
+          maxlength="40"
+          placeholder="e.g. Grocery, Ideas, Journal"
+          required
+          autocomplete="off"
+        />
+        <div class="dialog-actions">
+          <button type="button" class="ghost" id="sub-cancel">Cancel</button>
+          <button type="submit" value="ok" class="solid">Create</button>
+        </div>
+      </form>
+    </dialog>
+
+    <script>
+const STORAGE_KEY = "voice-memory-v1";
+const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+
+const els = {
+  chips: document.getElementById("chips"),
+  addSub: document.getElementById("add-sub"),
+  feed: document.getElementById("feed"),
+  mic: document.getElementById("mic"),
+  hint: document.getElementById("hint"),
+  live: document.getElementById("live"),
+  status: document.getElementById("status"),
+  toast: document.getElementById("toast"),
+  exportTxt: document.getElementById("export-txt"),
+  exportJson: document.getElementById("export-json"),
+  dialog: document.getElementById("sub-dialog"),
+  form: document.getElementById("sub-form"),
+  subName: document.getElementById("sub-name"),
+};
+
+const defaultState = () => ({
+  activeId: "inbox",
+  subscriptions: [{ id: "inbox", name: "Inbox", createdAt: Date.now() }],
+  notes: [],
+});
+
+function load() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return defaultState();
+    const data = JSON.parse(raw);
+    if (!data.subscriptions?.length) return defaultState();
+    return {
+      activeId: data.activeId || data.subscriptions[0].id,
+      subscriptions: data.subscriptions,
+      notes: Array.isArray(data.notes) ? data.notes : [],
+    };
+  } catch {
+    return defaultState();
+  }
+}
+
+function save() {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+}
+
+let state = load();
+let recognition = null;
+let listening = false;
+let finalBuffer = "";
+let toastTimer = 0;
+
+function uid() {
+  return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
+}
+
+function toast(message) {
+  els.toast.hidden = false;
+  els.toast.textContent = message;
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => {
+    els.toast.hidden = true;
+  }, 2200);
+}
+
+function currentSub() {
+  return state.subscriptions.find((s) => s.id === state.activeId) || state.subscriptions[0];
+}
+
+function visibleNotes() {
+  if (state.activeId === "all") return [...state.notes].sort((a, b) => b.createdAt - a.createdAt);
+  return state.notes
+    .filter((n) => n.subscriptionId === state.activeId)
+    .sort((a, b) => b.createdAt - a.createdAt);
+}
+
+function subName(id) {
+  return state.subscriptions.find((s) => s.id === id)?.name || "Inbox";
+}
+
+function renderChips() {
+  const items = [{ id: "all", name: "All" }, ...state.subscriptions];
+  els.chips.innerHTML = items
+    .map((s) => {
+      const active = s.id === state.activeId ? "active" : "";
+      const canDelete = s.id !== "all" && s.id !== "inbox";
+      return `<button type="button" class="chip ${active}" data-id="${s.id}">
+        ${escapeHtml(s.name)}${canDelete ? ` <span data-del="${s.id}" title="Remove">×</span>` : ""}
+      </button>`;
+    })
+    .join("");
+}
+
+function renderFeed() {
+  const notes = visibleNotes();
+  if (!notes.length) {
+    els.feed.innerHTML = `<div class="empty">No notes here yet.<br />Tap the mic and speak a memory.</div>`;
+    return;
+  }
+  els.feed.innerHTML = notes
+    .map((n) => {
+      const when = new Date(n.createdAt).toLocaleString([], {
+        month: "short",
+        day: "numeric",
+        hour: "numeric",
+        minute: "2-digit",
+      });
+      return `<article class="note" data-note="${n.id}">
+        <div class="note-meta">
+          <span>${escapeHtml(subName(n.subscriptionId))}</span>
+          <span>${when}</span>
+        </div>
+        <p>${escapeHtml(n.text)}</p>
+        <div class="note-actions">
+          <button type="button" class="icon-btn" data-play="${n.id}">Play</button>
+          <button type="button" class="icon-btn danger" data-delete="${n.id}">Delete</button>
+        </div>
+      </article>`;
+    })
+    .join("");
+}
+
+function render() {
+  renderChips();
+  renderFeed();
+}
+
+function escapeHtml(value) {
+  return String(value)
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;");
+}
+
+function addNote(text) {
+  const cleaned = text.replace(/\s+/g, " ").trim();
+  if (!cleaned) return;
+  const subscriptionId = state.activeId === "all" ? "inbox" : currentSub().id;
+  state.notes.unshift({
+    id: uid(),
+    subscriptionId,
+    text: cleaned,
+    createdAt: Date.now(),
+  });
+  save();
+  render();
+  toast("Saved on this device");
+}
+
+function deleteNote(id) {
+  state.notes = state.notes.filter((n) => n.id !== id);
+  save();
+  render();
+}
+
+function speak(text) {
+  window.speechSynthesis.cancel();
+  const utterance = new SpeechSynthesisUtterance(text);
+  utterance.rate = 1;
+  utterance.pitch = 1;
+  const voices = window.speechSynthesis.getVoices();
+  const preferred =
+    voices.find((v) => /en[-_]US/i.test(v.lang) && /google|natural|premium/i.test(v.name)) ||
+    voices.find((v) => /en/i.test(v.lang));
+  if (preferred) utterance.voice = preferred;
+  window.speechSynthesis.speak(utterance);
+  els.status.textContent = "Playing";
+  utterance.onend = () => {
+    if (!listening) els.status.textContent = "Ready";
+  };
+}
+
+function setListening(on) {
+  listening = on;
+  els.mic.classList.toggle("listening", on);
+  els.mic.setAttribute("aria-pressed", String(on));
+  els.mic.setAttribute("aria-label", on ? "Stop listening" : "Start listening");
+  els.live.hidden = !on;
+  els.status.textContent = on ? "Listening…" : "Ready";
+  els.hint.textContent = on
+    ? "Tap the mic again to save."
+    : "Tap the mic, then speak. Chrome or Edge works best.";
+}
+
+function ensureRecognition() {
+  if (recognition) return recognition;
+  recognition = new SpeechRecognition();
+  recognition.continuous = true;
+  recognition.interimResults = true;
+  recognition.lang = navigator.language || "en-US";
+  recognition.maxAlternatives = 1;
+
+  recognition.onresult = (event) => {
+    let interim = "";
+    for (let i = event.resultIndex; i < event.results.length; i += 1) {
+      const result = event.results[i];
+      if (result.isFinal) finalBuffer += `${result[0].transcript} `;
+      else interim += result[0].transcript;
+    }
+    els.live.hidden = false;
+    els.live.textContent = `${finalBuffer}${interim}`.trim();
+  };
+
+  recognition.onerror = (event) => {
+    if (event.error === "no-speech" || event.error === "aborted") return;
+    if (event.error === "not-allowed") {
+      toast("Microphone permission blocked");
+      els.hint.textContent = "Allow the mic in the browser address bar, then try again.";
+    } else {
+      toast(`Mic error: ${event.error}`);
+    }
+    stopListening(false);
+  };
+
+  recognition.onend = () => {
+    if (listening) {
+      try {
+        recognition.start();
+      } catch {
+        /* Chrome may throw if a restart races */
+      }
+    }
+  };
+
+  return recognition;
+}
+
+function startListening() {
+  if (!SpeechRecognition) return;
+  finalBuffer = "";
+  els.live.textContent = "";
+  setListening(true);
+  try {
+    navigator.vibrate?.(20);
+    ensureRecognition().start();
+  } catch {
+    toast("Could not start the microphone");
+    setListening(false);
+  }
+}
+
+function stopListening(saveNote = true) {
+  const text = (els.live.textContent || finalBuffer).trim();
+  setListening(false);
+  try {
+    recognition?.stop();
+  } catch {
+    /* already stopped */
+  }
+  if (saveNote) addNote(text);
+}
+
+function download(filename, contents, type) {
+  const blob = new Blob([contents], { type });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+function exportJson() {
+  download(
+    `voice-memory-${new Date().toISOString().slice(0, 10)}.json`,
+    JSON.stringify(state, null, 2),
+    "application/json"
+  );
+}
+
+function exportTxt() {
+  const lines = [
+    "Voice Memory export",
+    `Exported ${new Date().toLocaleString()}`,
+    "",
+  ];
+  for (const sub of state.subscriptions) {
+    const notes = state.notes.filter((n) => n.subscriptionId === sub.id);
+    lines.push(`# ${sub.name}`);
+    if (!notes.length) lines.push("(empty)", "");
+    for (const note of notes.sort((a, b) => b.createdAt - a.createdAt)) {
+      lines.push(`- ${new Date(note.createdAt).toLocaleString()}`);
+      lines.push(note.text, "");
+    }
+  }
+  download(
+    `voice-memory-${new Date().toISOString().slice(0, 10)}.txt`,
+    lines.join("\n"),
+    "text/plain"
+  );
+}
+
+els.chips.addEventListener("click", (event) => {
+  const del = event.target.closest("[data-del]");
+  if (del) {
+    const id = del.dataset.del;
+    state.subscriptions = state.subscriptions.filter((s) => s.id !== id);
+    state.notes = state.notes.map((n) =>
+      n.subscriptionId === id ? { ...n, subscriptionId: "inbox" } : n
+    );
+    if (state.activeId === id) state.activeId = "inbox";
+    save();
+    render();
+    return;
+  }
+  const chip = event.target.closest("[data-id]");
+  if (!chip) return;
+  state.activeId = chip.dataset.id;
+  save();
+  render();
+});
+
+els.addSub.addEventListener("click", () => {
+  els.subName.value = "";
+  els.dialog.showModal();
+  els.subName.focus();
+});
+
+document.getElementById("sub-cancel").addEventListener("click", () => els.dialog.close());
+
+els.form.addEventListener("submit", (event) => {
+  event.preventDefault();
+  const name = els.subName.value.trim();
+  if (!name) return;
+  const sub = { id: uid(), name, createdAt: Date.now() };
+  state.subscriptions.push(sub);
+  state.activeId = sub.id;
+  save();
+  render();
+  els.dialog.close();
+});
+
+els.feed.addEventListener("click", (event) => {
+  const play = event.target.closest("[data-play]");
+  const del = event.target.closest("[data-delete]");
+  if (play) {
+    const note = state.notes.find((n) => n.id === play.dataset.play);
+    if (note) speak(note.text);
+  }
+  if (del) deleteNote(del.dataset.delete);
+});
+
+els.mic.addEventListener("click", () => {
+  if (!SpeechRecognition) {
+    toast("Use Chrome or Edge for the microphone");
+    return;
+  }
+  if (listening) stopListening(true);
+  else startListening();
+});
+
+els.exportTxt.addEventListener("click", exportTxt);
+els.exportJson.addEventListener("click", exportJson);
+
+if (!SpeechRecognition) {
+  els.mic.classList.add("unsupported");
+  els.hint.textContent = "Speech recognition needs Chrome or Edge on HTTPS.";
+  els.status.textContent = "Mic unavailable";
+  els.feed.insertAdjacentHTML(
+    "beforebegin",
+    `<p class="banner">This browser cannot transcribe speech. Open this page in Chrome or Edge, and keep HTTPS on so the mic can run.</p>`
+  );
+} else if (location.protocol !== "https:" && location.hostname !== "localhost") {
+  els.hint.textContent = "Microphone needs HTTPS. Open the GitHub Pages link.";
+}
+
+window.speechSynthesis?.getVoices?.();
+render();
+
+    </script>
+  </body>
+</html>
