@@ -1,0 +1,17 @@
+{
+  "name": "Voice Memory",
+  "short_name": "Voice Memory",
+  "start_url": "./",
+  "display": "standalone",
+  "background_color": "#07080d",
+  "theme_color": "#07080d",
+  "description": "Speak notes, save them on this device, and play them back.",
+  "icons": [
+    {
+      "src": "./favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ]
+}

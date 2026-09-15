@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="theme-color" content="#07080d" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta
+      name="description"
+      content="Voice Memory — speak notes, organize them into subscriptions, and play them back. Saved only on this device."
+    />
+    <title>Voice Memory</title>
+    <link rel="manifest" href="./manifest.webmanifest" />
+    <link rel="icon" href="./favicon.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <div class="bg" aria-hidden="true"></div>
+
+    <header class="top">
+      <div class="brand">
+        <span class="mark" aria-hidden="true"></span>
+        <div>
+          <h1>Voice Memory</h1>
+          <p class="tag">Speak it. Save it. Hear it back.</p>
+        </div>
+      </div>
+      <div class="top-actions">
+        <button type="button" class="ghost" id="export-txt" title="Export notes as text">
+          TXT
+        </button>
+        <button type="button" class="ghost" id="export-json" title="Export notes as JSON">
+          JSON
+        </button>
+      </div>
+    </header>
+
+    <section class="subs" aria-label="Subscriptions">
+      <div class="chips" id="chips"></div>
+      <button type="button" class="chip add" id="add-sub">+ New</button>
+    </section>
+
+    <main class="feed" id="feed" aria-live="polite"></main>
+
+    <div class="toast" id="toast" hidden></div>
+
+    <footer class="dock">
+      <p class="hint" id="hint">Tap the mic, then speak. Chrome or Edge works best.</p>
+      <p class="live" id="live" hidden></p>
+      <button type="button" class="mic" id="mic" aria-pressed="false" aria-label="Start listening">
+        <span class="mic-ring"></span>
+        <span class="mic-core">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path
+              d="M12 14.5a3.5 3.5 0 0 0 3.5-3.5V6a3.5 3.5 0 1 0-7 0v5a3.5 3.5 0 0 0 3.5 3.5Zm7-3.5a1 1 0 1 0-2 0 5 5 0 0 1-10 0 1 1 0 1 0-2 0 7 7 0 0 0 6 6.93V20H9a1 1 0 1 0 0 2h6a1 1 0 1 0 0-2h-2v-2.07A7 7 0 0 0 19 11Z"
+            />
+          </svg>
+        </span>
+      </button>
+      <p class="status" id="status">Ready</p>
+    </footer>
+
+    <dialog id="sub-dialog">
+      <form method="dialog" id="sub-form">
+        <h2>New subscription</h2>
+        <p>A named list for notes you want to keep together.</p>
+        <input
+          id="sub-name"
+          name="name"
+          maxlength="40"
+          placeholder="e.g. Grocery, Ideas, Journal"
+          required
+          autocomplete="off"
+        />
+        <div class="dialog-actions">
+          <button type="button" class="ghost" id="sub-cancel">Cancel</button>
+          <button type="submit" value="ok" class="solid">Create</button>
+        </div>
+      </form>
+    </dialog>
+
+    <script src="./app.js"></script>
+  </body>
+</html>
