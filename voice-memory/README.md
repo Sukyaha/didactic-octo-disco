@@ -1,5 +1,5 @@
 # Voice Memory
 
-Static browser app: speak notes, save them in `localStorage`, play them back, export TXT/JSON.
+Static phone-first notes app. Speak a note, save it on this device, play it back, export TXT/JSON.
 
-Open the GitHub Pages URL on a phone. Use Chrome or Edge, allow the microphone, tap the mic, speak, tap again to save.
+Open the published HTTPS URL in Chrome or Edge. Allow the microphone, tap the big button, speak, tap again to save.
