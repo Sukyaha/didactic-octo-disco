@@ -19,7 +19,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - name: Verify publish directory
+        if: ${{ github.event.repository.has_pages }}
+        run: test -d voice-memory
       - uses: actions/upload-pages-artifact@v3
+        if: ${{ github.event.repository.has_pages }}
         with:
           path: voice-memory
       - name: Skip deploy when Pages is not enabled
