@@ -507,7 +507,7 @@ if (!SpeechRecognition) {
     "beforebegin",
     `<p class="banner">This browser cannot transcribe speech. Open this page in Chrome or Edge on HTTPS. You can still paste notes and send them to ChatGPT.</p>`
   );
-} else if (location.protocol !== "https:" && location.hostname !== "localhost") {
+} else if (location.protocol !== "https:" && !["localhost", "127.0.0.1"].includes(location.hostname)) {
   els.hint.textContent = "Microphone needs HTTPS.";
 } else {
   els.hint.textContent = readyHint();
