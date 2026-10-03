@@ -8,7 +8,7 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta
       name="description"
-      content="Voice Memory — speak notes, organize them into subscriptions, and play them back. Saved only on this device."
+      content="Voice Memory — speak notes on phone or desktop, then hand them to ChatGPT. Saved only on this device."
     />
     <title>Voice Memory</title>
     <link rel="icon" href='data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">  <defs>    <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">      <stop offset="0" stop-color="#8b7cff"/>      <stop offset="1" stop-color="#3ee0c0"/>    </linearGradient>  </defs>  <rect width="64" height="64" rx="16" fill="#07080d"/>  <rect x="6" y="6" width="52" height="52" rx="14" fill="url(#g)"/>  <path fill="#fff" d="M32 38.2a6.2 6.2 0 0 0 6.2-6.2V18.8a6.2 6.2 0 1 0-12.4 0V32a6.2 6.2 0 0 0 6.2 6.2Zm12.4-6.2a3.1 3.1 0 0 0-6.2 0 6.2 6.2 0 1 1-12.4 0 3.1 3.1 0 0 0-6.2 0 12.4 12.4 0 0 0 10.8 12.3V50h-5.4a3.1 3.1 0 0 0 0 6.2h12.4a3.1 3.1 0 0 0 0-6.2h-5.4v-5.7A12.4 12.4 0 0 0 44.4 32Z"/></svg>' />
@@ -43,6 +43,11 @@ body {
 body {
   min-height: 100dvh;
   padding: 18px 18px calc(220px + var(--safe-bottom));
+}
+
+body.dragover {
+  outline: 2px dashed var(--accent-2);
+  outline-offset: -10px;
 }
 
 .bg {
@@ -85,7 +90,8 @@ h1 {
 .tag,
 .hint,
 .status,
-.muted {
+.muted,
+.keys {
   color: var(--muted);
 }
 
@@ -96,6 +102,8 @@ h1 {
 
 .top-actions {
   display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
   gap: 8px;
 }
 
@@ -115,9 +123,21 @@ button {
   border: 1px solid var(--line);
 }
 
-.solid {
+.solid,
+.ghost.gpt {
   background: linear-gradient(135deg, var(--accent), #5b4dff);
   border-color: transparent;
+}
+
+.ghost.gpt {
+  box-shadow: 0 0 20px rgba(124, 108, 255, 0.25);
+}
+
+.ghost:hover,
+.solid:hover,
+.icon-btn:hover,
+.chip:hover {
+  border-color: rgba(255, 255, 255, 0.2);
 }
 
 .ghost:active,
@@ -128,8 +148,34 @@ button {
   transform: scale(0.98);
 }
 
+.toolbar {
+  margin-top: 14px;
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.search {
+  flex: 1;
+  min-width: 0;
+  padding: 10px 14px;
+  border-radius: 12px;
+  border: 1px solid var(--line);
+  background: #0b0c14;
+  color: var(--text);
+  font: inherit;
+}
+
+.search:focus,
+dialog input:focus,
+button:focus-visible,
+.mic:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
 .subs {
-  margin-top: 18px;
+  margin-top: 14px;
   display: flex;
   gap: 8px;
   overflow-x: auto;
@@ -164,8 +210,11 @@ button {
   color: var(--accent-2);
 }
 
-.feed {
+.layout {
   margin-top: 16px;
+}
+
+.feed {
   display: grid;
   gap: 12px;
 }
@@ -205,6 +254,7 @@ button {
 
 .note-actions {
   display: flex;
+  flex-wrap: wrap;
   gap: 8px;
   margin-top: 12px;
 }
@@ -232,9 +282,15 @@ button {
 
 .hint,
 .live,
-.status {
+.status,
+.keys {
   margin: 0;
   text-align: center;
+}
+
+.keys {
+  font-size: 0.78rem;
+  display: none;
 }
 
 .live {
@@ -363,10 +419,56 @@ dialog input {
   border-radius: 14px;
 }
 
+.partner {
+  margin: 0;
+  font-size: 0.8rem;
+  color: var(--muted);
+}
+
 @media (min-width: 720px) {
   body {
     max-width: 720px;
     margin: 0 auto;
+  }
+}
+
+@media (min-width: 980px) {
+  body {
+    max-width: 1120px;
+    padding: 28px 28px 32px;
+  }
+
+  .keys {
+    display: block;
+  }
+
+  .layout {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 320px;
+    gap: 22px;
+    align-items: start;
+  }
+
+  .dock {
+    position: sticky;
+    top: 24px;
+    left: auto;
+    right: auto;
+    bottom: auto;
+    padding: 22px 16px;
+    border-radius: 24px;
+    border: 1px solid var(--line);
+    background: var(--panel);
+    box-shadow: var(--shadow);
+  }
+
+  .toast {
+    bottom: 32px;
+  }
+
+  .mic {
+    width: 168px;
+    height: 168px;
   }
 }
 
@@ -380,43 +482,50 @@ dialog input {
         <span class="mark" aria-hidden="true"></span>
         <div>
           <h1>Voice Memory</h1>
-          <p class="tag">Speak it. Save it. Hear it back.</p>
+          <p class="tag">Speak it. Save it. Hand it to ChatGPT.</p>
         </div>
       </div>
       <div class="top-actions">
-        <button type="button" class="ghost" id="export-txt" title="Export notes as text">
-          TXT
+        <button type="button" class="ghost gpt" id="ask-gpt" title="Copy visible notes and open ChatGPT">
+          ChatGPT
         </button>
-        <button type="button" class="ghost" id="export-json" title="Export notes as JSON">
-          JSON
-        </button>
+        <button type="button" class="ghost" id="export-txt" title="Export notes as text">TXT</button>
+        <button type="button" class="ghost" id="export-json" title="Export notes as JSON">JSON</button>
       </div>
     </header>
+
+    <div class="toolbar">
+      <input id="search" class="search" type="search" placeholder="Search notes  (/)" autocomplete="off" />
+    </div>
 
     <section class="subs" aria-label="Subscriptions">
       <div class="chips" id="chips"></div>
       <button type="button" class="chip add" id="add-sub">+ New</button>
     </section>
 
-    <main class="feed" id="feed" aria-live="polite"></main>
+    <div class="layout">
+      <main class="feed" id="feed" aria-live="polite"></main>
+
+      <footer class="dock">
+        <p class="hint" id="hint">Tap the mic, then speak. Chrome or Edge works best.</p>
+        <p class="live" id="live" hidden></p>
+        <button type="button" class="mic" id="mic" aria-pressed="false" aria-label="Start listening">
+          <span class="mic-ring"></span>
+          <span class="mic-core">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path
+                d="M12 14.5a3.5 3.5 0 0 0 3.5-3.5V6a3.5 3.5 0 1 0-7 0v5a3.5 3.5 0 0 0 3.5 3.5Zm7-3.5a1 1 0 1 0-2 0 5 5 0 0 1-10 0 1 1 0 1 0-2 0 7 7 0 0 0 6 6.93V20H9a1 1 0 1 0 0 2h6a1 1 0 1 0 0-2h-2v-2.07A7 7 0 0 0 19 11Z"
+              />
+            </svg>
+          </span>
+        </button>
+        <p class="status" id="status">Ready</p>
+        <p class="keys">Space mic · / search · G ChatGPT · paste or drop a file</p>
+        <p class="partner">Does not replace your OpenAI bot. It only hands notes over.</p>
+      </footer>
+    </div>
 
     <div class="toast" id="toast" hidden></div>
-
-    <footer class="dock">
-      <p class="hint" id="hint">Tap the mic, then speak. Chrome or Edge works best.</p>
-      <p class="live" id="live" hidden></p>
-      <button type="button" class="mic" id="mic" aria-pressed="false" aria-label="Start listening">
-        <span class="mic-ring"></span>
-        <span class="mic-core">
-          <svg viewBox="0 0 24 24" aria-hidden="true">
-            <path
-              d="M12 14.5a3.5 3.5 0 0 0 3.5-3.5V6a3.5 3.5 0 1 0-7 0v5a3.5 3.5 0 0 0 3.5 3.5Zm7-3.5a1 1 0 1 0-2 0 5 5 0 0 1-10 0 1 1 0 1 0-2 0 7 7 0 0 0 6 6.93V20H9a1 1 0 1 0 0 2h6a1 1 0 1 0 0-2h-2v-2.07A7 7 0 0 0 19 11Z"
-            />
-          </svg>
-        </span>
-      </button>
-      <p class="status" id="status">Ready</p>
-    </footer>
 
     <dialog id="sub-dialog">
       <form method="dialog" id="sub-form">
@@ -452,6 +561,8 @@ const els = {
   toast: document.getElementById("toast"),
   exportTxt: document.getElementById("export-txt"),
   exportJson: document.getElementById("export-json"),
+  askGpt: document.getElementById("ask-gpt"),
+  search: document.getElementById("search"),
   dialog: document.getElementById("sub-dialog"),
   form: document.getElementById("sub-form"),
   subName: document.getElementById("sub-name"),
@@ -488,6 +599,7 @@ let recognition = null;
 let listening = false;
 let finalBuffer = "";
 let toastTimer = 0;
+let query = "";
 
 function uid() {
   return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
@@ -499,7 +611,7 @@ function toast(message) {
   clearTimeout(toastTimer);
   toastTimer = setTimeout(() => {
     els.toast.hidden = true;
-  }, 2200);
+  }, 2400);
 }
 
 function currentSub() {
@@ -507,10 +619,13 @@ function currentSub() {
 }
 
 function visibleNotes() {
-  if (state.activeId === "all") return [...state.notes].sort((a, b) => b.createdAt - a.createdAt);
-  return state.notes
-    .filter((n) => n.subscriptionId === state.activeId)
-    .sort((a, b) => b.createdAt - a.createdAt);
+  const q = query.trim().toLowerCase();
+  let notes =
+    state.activeId === "all"
+      ? [...state.notes]
+      : state.notes.filter((n) => n.subscriptionId === state.activeId);
+  if (q) notes = notes.filter((n) => n.text.toLowerCase().includes(q) || subName(n.subscriptionId).toLowerCase().includes(q));
+  return notes.sort((a, b) => b.createdAt - a.createdAt);
 }
 
 function subName(id) {
@@ -533,7 +648,7 @@ function renderChips() {
 function renderFeed() {
   const notes = visibleNotes();
   if (!notes.length) {
-    els.feed.innerHTML = `<div class="empty">No notes here yet.<br />Tap the mic and speak a memory.</div>`;
+    els.feed.innerHTML = `<div class="empty">No notes here yet.<br />Speak, paste, or drop a file. ChatGPT stays your helper — we only hand notes over.</div>`;
     return;
   }
   els.feed.innerHTML = notes
@@ -552,6 +667,8 @@ function renderFeed() {
         <p>${escapeHtml(n.text)}</p>
         <div class="note-actions">
           <button type="button" class="icon-btn" data-play="${n.id}">Play</button>
+          <button type="button" class="icon-btn" data-copy="${n.id}">Copy</button>
+          <button type="button" class="icon-btn" data-gpt="${n.id}">ChatGPT</button>
           <button type="button" class="icon-btn danger" data-delete="${n.id}">Delete</button>
         </div>
       </article>`;
@@ -593,6 +710,47 @@ function deleteNote(id) {
   render();
 }
 
+function notesAsPrompt(notes = visibleNotes()) {
+  if (!notes.length) return "";
+  const lines = [
+    "These are notes from Voice Memory on my desktop.",
+    "Please help with them — organize, answer, or turn them into next steps.",
+    "",
+  ];
+  for (const note of notes) {
+    lines.push(`[${subName(note.subscriptionId)} · ${new Date(note.createdAt).toLocaleString()}]`);
+    lines.push(note.text, "");
+  }
+  return lines.join("\n");
+}
+
+async function copyText(text) {
+  if (!text) return false;
+  try {
+    await navigator.clipboard.writeText(text);
+    return true;
+  } catch {
+    const area = document.createElement("textarea");
+    area.value = text;
+    document.body.appendChild(area);
+    area.select();
+    const ok = document.execCommand("copy");
+    area.remove();
+    return ok;
+  }
+}
+
+async function handoffToChatGPT(text, label = "notes") {
+  if (!text) {
+    toast("Nothing to send yet");
+    return;
+  }
+  const copied = await copyText(text);
+  const url = `https://chatgpt.com/?q=${encodeURIComponent(text.slice(0, 1800))}`;
+  window.open(url, "_blank", "noopener");
+  toast(copied ? `Copied ${label} — paste in ChatGPT if needed` : "Opened ChatGPT");
+}
+
 function speak(text) {
   window.speechSynthesis.cancel();
   const utterance = new SpeechSynthesisUtterance(text);
@@ -610,6 +768,12 @@ function speak(text) {
   };
 }
 
+function readyHint() {
+  return window.matchMedia("(min-width: 980px)").matches
+    ? "Click the mic or press Space. Paste or drop files. ChatGPT button hands work to your OpenAI bot."
+    : "Tap the mic, then speak. Chrome or Edge works best.";
+}
+
 function setListening(on) {
   listening = on;
   els.mic.classList.toggle("listening", on);
@@ -617,9 +781,7 @@ function setListening(on) {
   els.mic.setAttribute("aria-label", on ? "Stop listening" : "Start listening");
   els.live.hidden = !on;
   els.status.textContent = on ? "Listening…" : "Ready";
-  els.hint.textContent = on
-    ? "Tap the mic again to save."
-    : "Tap the mic, then speak. Chrome or Edge works best.";
+  els.hint.textContent = on ? "Click the mic or press Space to save." : readyHint();
 }
 
 function ensureRecognition() {
@@ -663,6 +825,15 @@ function ensureRecognition() {
   };
 
   return recognition;
+}
+
+function toggleMic() {
+  if (!SpeechRecognition) {
+    toast("Use Chrome or Edge for the microphone");
+    return;
+  }
+  if (listening) stopListening(true);
+  else startListening();
 }
 
 function startListening() {
@@ -709,11 +880,7 @@ function exportJson() {
 }
 
 function exportTxt() {
-  const lines = [
-    "Voice Memory export",
-    `Exported ${new Date().toLocaleString()}`,
-    "",
-  ];
+  const lines = ["Voice Memory export", `Exported ${new Date().toLocaleString()}`, ""];
   for (const sub of state.subscriptions) {
     const notes = state.notes.filter((n) => n.subscriptionId === sub.id);
     lines.push(`# ${sub.name}`);
@@ -728,6 +895,35 @@ function exportTxt() {
     lines.join("\n"),
     "text/plain"
   );
+}
+
+function importPayload(text, filename = "") {
+  const trimmed = text.trim();
+  if (!trimmed) return;
+  if (filename.endsWith(".json") || trimmed.startsWith("{") || trimmed.startsWith("[")) {
+    try {
+      const data = JSON.parse(trimmed);
+      if (data.subscriptions && Array.isArray(data.notes)) {
+        state = {
+          activeId: data.activeId || data.subscriptions[0]?.id || "inbox",
+          subscriptions: data.subscriptions,
+          notes: data.notes,
+        };
+        save();
+        render();
+        toast("Imported Voice Memory JSON");
+        return;
+      }
+    } catch {
+      /* fall through to plain text */
+    }
+  }
+  addNote(trimmed);
+}
+
+function typingInField() {
+  const el = document.activeElement;
+  return el && (el.tagName === "INPUT" || el.tagName === "TEXTAREA" || el.isContentEditable);
 }
 
 els.chips.addEventListener("click", (event) => {
@@ -772,36 +968,98 @@ els.form.addEventListener("submit", (event) => {
 
 els.feed.addEventListener("click", (event) => {
   const play = event.target.closest("[data-play]");
+  const copy = event.target.closest("[data-copy]");
+  const gpt = event.target.closest("[data-gpt]");
   const del = event.target.closest("[data-delete]");
   if (play) {
     const note = state.notes.find((n) => n.id === play.dataset.play);
     if (note) speak(note.text);
   }
+  if (copy) {
+    const note = state.notes.find((n) => n.id === copy.dataset.copy);
+    if (note) copyText(note.text).then((ok) => toast(ok ? "Copied note" : "Could not copy"));
+  }
+  if (gpt) {
+    const note = state.notes.find((n) => n.id === gpt.dataset.gpt);
+    if (note) handoffToChatGPT(notesAsPrompt([note]), "note");
+  }
   if (del) deleteNote(del.dataset.delete);
 });
 
-els.mic.addEventListener("click", () => {
-  if (!SpeechRecognition) {
-    toast("Use Chrome or Edge for the microphone");
-    return;
-  }
-  if (listening) stopListening(true);
-  else startListening();
-});
-
+els.mic.addEventListener("click", toggleMic);
 els.exportTxt.addEventListener("click", exportTxt);
 els.exportJson.addEventListener("click", exportJson);
+els.askGpt.addEventListener("click", () => handoffToChatGPT(notesAsPrompt(), "notes"));
+els.search.addEventListener("input", () => {
+  query = els.search.value;
+  renderFeed();
+});
+
+document.addEventListener("keydown", (event) => {
+  if (event.key === "Escape") {
+    if (listening) stopListening(true);
+    els.dialog.open && els.dialog.close();
+    return;
+  }
+  if (typingInField()) return;
+  if (event.key === " " || event.code === "Space") {
+    event.preventDefault();
+    toggleMic();
+  } else if (event.key === "/" && !event.metaKey && !event.ctrlKey) {
+    event.preventDefault();
+    els.search.focus();
+  } else if (event.key.toLowerCase() === "g" && !event.metaKey && !event.ctrlKey) {
+    event.preventDefault();
+    handoffToChatGPT(notesAsPrompt(), "notes");
+  }
+});
+
+document.addEventListener("paste", (event) => {
+  if (typingInField()) return;
+  const text = event.clipboardData?.getData("text/plain");
+  if (text) {
+    event.preventDefault();
+    importPayload(text);
+  }
+});
+
+["dragenter", "dragover"].forEach((type) => {
+  document.addEventListener(type, (event) => {
+    event.preventDefault();
+    document.body.classList.add("dragover");
+  });
+});
+["dragleave", "drop"].forEach((type) => {
+  document.addEventListener(type, (event) => {
+    if (type === "drop") event.preventDefault();
+    if (type === "dragleave" && event.target !== document.body) return;
+    document.body.classList.remove("dragover");
+  });
+});
+document.addEventListener("drop", async (event) => {
+  event.preventDefault();
+  document.body.classList.remove("dragover");
+  const file = event.dataTransfer?.files?.[0];
+  if (!file) {
+    const text = event.dataTransfer?.getData("text/plain");
+    if (text) importPayload(text);
+    return;
+  }
+  importPayload(await file.text(), file.name || "");
+});
 
 if (!SpeechRecognition) {
   els.mic.classList.add("unsupported");
   els.hint.textContent = "Speech recognition needs Chrome or Edge on HTTPS.";
   els.status.textContent = "Mic unavailable";
-  els.feed.insertAdjacentHTML(
+  document.querySelector(".layout")?.insertAdjacentHTML(
     "beforebegin",
-    `<p class="banner">This browser cannot transcribe speech. Open this page in Chrome or Edge, and keep HTTPS on so the mic can run.</p>`
+    `<p class="banner">This browser cannot transcribe speech. Open this page in Chrome or Edge on HTTPS. You can still paste notes and send them to ChatGPT.</p>`
   );
 } else if (location.protocol !== "https:" && location.hostname !== "localhost") {
-  els.hint.textContent = "Microphone needs HTTPS. Open the GitHub Pages link.";
+  els.hint.textContent = "Microphone needs HTTPS.";
+} else {
+  els.hint.textContent = readyHint();
 }
 
 window.speechSynthesis?.getVoices?.();

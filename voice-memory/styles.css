@@ -30,6 +30,11 @@ body {
   padding: 18px 18px calc(220px + var(--safe-bottom));
 }
 
+body.dragover {
+  outline: 2px dashed var(--accent-2);
+  outline-offset: -10px;
+}
+
 .bg {
   position: fixed;
   inset: 0;
@@ -70,7 +75,8 @@ h1 {
 .tag,
 .hint,
 .status,
-.muted {
+.muted,
+.keys {
   color: var(--muted);
 }
 
@@ -81,6 +87,8 @@ h1 {
 
 .top-actions {
   display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
   gap: 8px;
 }
 
@@ -100,9 +108,21 @@ button {
   border: 1px solid var(--line);
 }
 
-.solid {
+.solid,
+.ghost.gpt {
   background: linear-gradient(135deg, var(--accent), #5b4dff);
   border-color: transparent;
+}
+
+.ghost.gpt {
+  box-shadow: 0 0 20px rgba(124, 108, 255, 0.25);
+}
+
+.ghost:hover,
+.solid:hover,
+.icon-btn:hover,
+.chip:hover {
+  border-color: rgba(255, 255, 255, 0.2);
 }
 
 .ghost:active,
@@ -113,8 +133,34 @@ button {
   transform: scale(0.98);
 }
 
+.toolbar {
+  margin-top: 14px;
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.search {
+  flex: 1;
+  min-width: 0;
+  padding: 10px 14px;
+  border-radius: 12px;
+  border: 1px solid var(--line);
+  background: #0b0c14;
+  color: var(--text);
+  font: inherit;
+}
+
+.search:focus,
+dialog input:focus,
+button:focus-visible,
+.mic:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
 .subs {
-  margin-top: 18px;
+  margin-top: 14px;
   display: flex;
   gap: 8px;
   overflow-x: auto;
@@ -149,8 +195,11 @@ button {
   color: var(--accent-2);
 }
 
-.feed {
+.layout {
   margin-top: 16px;
+}
+
+.feed {
   display: grid;
   gap: 12px;
 }
@@ -190,6 +239,7 @@ button {
 
 .note-actions {
   display: flex;
+  flex-wrap: wrap;
   gap: 8px;
   margin-top: 12px;
 }
@@ -217,9 +267,15 @@ button {
 
 .hint,
 .live,
-.status {
+.status,
+.keys {
   margin: 0;
   text-align: center;
+}
+
+.keys {
+  font-size: 0.78rem;
+  display: none;
 }
 
 .live {
@@ -348,9 +404,55 @@ dialog input {
   border-radius: 14px;
 }
 
+.partner {
+  margin: 0;
+  font-size: 0.8rem;
+  color: var(--muted);
+}
+
 @media (min-width: 720px) {
   body {
     max-width: 720px;
     margin: 0 auto;
+  }
+}
+
+@media (min-width: 980px) {
+  body {
+    max-width: 1120px;
+    padding: 28px 28px 32px;
+  }
+
+  .keys {
+    display: block;
+  }
+
+  .layout {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 320px;
+    gap: 22px;
+    align-items: start;
+  }
+
+  .dock {
+    position: sticky;
+    top: 24px;
+    left: auto;
+    right: auto;
+    bottom: auto;
+    padding: 22px 16px;
+    border-radius: 24px;
+    border: 1px solid var(--line);
+    background: var(--panel);
+    box-shadow: var(--shadow);
+  }
+
+  .toast {
+    bottom: 32px;
+  }
+
+  .mic {
+    width: 168px;
+    height: 168px;
   }
 }

@@ -1,5 +1,9 @@
 # Voice Memory
 
-Static phone-first notes app. Speak a note, save it on this device, play it back, export TXT/JSON.
+Static browser app for phone and desktop. Speak or paste notes, save them in `localStorage`, play them back, export TXT/JSON, or hand them to ChatGPT.
 
-Open the published HTTPS URL in Chrome or Edge. Allow the microphone, tap the big button, speak, tap again to save.
+This does not replace an OpenAI / ChatGPT bot. The ChatGPT button copies notes and opens ChatGPT so that bot can help.
+
+Desktop: Space toggles the mic, `/` searches, `G` sends visible notes to ChatGPT. Paste or drop a `.txt` / `.json` file to import.
+
+Use Chrome or Edge on HTTPS. Allow the microphone, tap or click the mic, speak, tap again to save.
