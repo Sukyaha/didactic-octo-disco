@@ -141,14 +141,28 @@ button {
 }
 
 .service-pick {
-  font: inherit;
-  color: var(--text);
-  color-scheme: dark;
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 2px;
+  padding: 3px;
+  border-radius: 999px;
   background: rgba(255, 255, 255, 0.06);
   border: 1px solid var(--line);
+}
+
+.seg {
+  border: 0;
   border-radius: 999px;
-  padding: 8px 12px;
-  cursor: pointer;
+  padding: 6px 10px;
+  background: transparent;
+  color: var(--muted);
+  font: inherit;
+  font-size: 0.85rem;
+}
+
+.seg[aria-pressed="true"] {
+  background: rgba(139, 124, 255, 0.38);
+  color: var(--text);
 }
 
 .ghost:hover,
@@ -162,7 +176,8 @@ button {
 .solid:active,
 .icon-btn:active,
 .chip:active,
-.mic:active {
+.mic:active,
+.seg:active {
   transform: scale(0.98);
 }
 
@@ -187,7 +202,7 @@ button {
 .search:focus,
 dialog input:focus,
 dialog textarea:focus,
-.service-pick:focus-visible,
+.seg:focus-visible,
 button:focus-visible,
 .mic:focus-visible {
   outline: 2px solid var(--accent);
@@ -452,6 +467,28 @@ dialog textarea {
   color: var(--muted);
 }
 
+@media (max-width: 719px) {
+  .top {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .top-actions {
+    justify-content: flex-start;
+    align-items: flex-start;
+  }
+
+  .handoff {
+    flex-direction: column;
+    align-items: flex-start;
+    width: 100%;
+  }
+
+  .service-pick {
+    flex-wrap: nowrap;
+  }
+}
+
 @media (min-width: 720px) {
   body {
     max-width: 720px;
@@ -514,12 +551,12 @@ dialog textarea {
       </div>
       <div class="top-actions">
         <div class="handoff">
-          <select id="handoff-service" class="service-pick" aria-label="AI helper">
-            <option value="chatgpt">ChatGPT</option>
-            <option value="grok">Grok</option>
-            <option value="claude">Claude</option>
-            <option value="gemini">Gemini</option>
-          </select>
+          <div class="service-pick" id="handoff-service" role="group" aria-label="AI helper">
+            <button type="button" class="seg" data-helper="chatgpt" aria-pressed="true">ChatGPT</button>
+            <button type="button" class="seg" data-helper="grok" aria-pressed="false">Grok</button>
+            <button type="button" class="seg" data-helper="claude" aria-pressed="false">Claude</button>
+            <button type="button" class="seg" data-helper="gemini" aria-pressed="false">Gemini</button>
+          </div>
           <button type="button" class="ghost send" id="send-notes" title="Copy visible notes and open the chosen helper">
             Send to ChatGPT
           </button>
@@ -674,9 +711,11 @@ function sendLabel() {
 function applyHelperLabels() {
   const helper = currentHelper();
   const label = sendLabel();
-  els.service.value = helper.id;
   els.sendNotes.textContent = label;
   els.sendNotes.title = `Copy visible notes and open ${helper.name}. Paste them in and press send.`;
+  document.querySelectorAll("[data-helper]").forEach((button) => {
+    button.setAttribute("aria-pressed", String(button.dataset.helper === helper.id));
+  });
   document.querySelectorAll("[data-send]").forEach((button) => {
     button.textContent = label;
   });
@@ -1128,7 +1167,10 @@ els.mic.addEventListener("click", toggleMic);
 els.exportTxt.addEventListener("click", exportTxt);
 els.exportJson.addEventListener("click", exportJson);
 els.sendNotes.addEventListener("click", () => handoffNotes(notesAsPrompt()));
-els.service.addEventListener("change", () => setHelper(els.service.value));
+els.service.addEventListener("click", (event) => {
+  const button = event.target.closest("[data-helper]");
+  if (button) setHelper(button.dataset.helper);
+});
 els.search.addEventListener("input", () => {
   query = els.search.value;
   renderFeed();

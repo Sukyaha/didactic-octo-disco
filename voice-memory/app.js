@@ -79,9 +79,11 @@ function sendLabel() {
 function applyHelperLabels() {
   const helper = currentHelper();
   const label = sendLabel();
-  els.service.value = helper.id;
   els.sendNotes.textContent = label;
   els.sendNotes.title = `Copy visible notes and open ${helper.name}. Paste them in and press send.`;
+  document.querySelectorAll("[data-helper]").forEach((button) => {
+    button.setAttribute("aria-pressed", String(button.dataset.helper === helper.id));
+  });
   document.querySelectorAll("[data-send]").forEach((button) => {
     button.textContent = label;
   });
@@ -533,7 +535,10 @@ els.mic.addEventListener("click", toggleMic);
 els.exportTxt.addEventListener("click", exportTxt);
 els.exportJson.addEventListener("click", exportJson);
 els.sendNotes.addEventListener("click", () => handoffNotes(notesAsPrompt()));
-els.service.addEventListener("change", () => setHelper(els.service.value));
+els.service.addEventListener("click", (event) => {
+  const button = event.target.closest("[data-helper]");
+  if (button) setHelper(button.dataset.helper);
+});
 els.search.addEventListener("input", () => {
   query = els.search.value;
   renderFeed();

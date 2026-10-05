@@ -29,12 +29,12 @@
       </div>
       <div class="top-actions">
         <div class="handoff">
-          <select id="handoff-service" class="service-pick" aria-label="AI helper">
-            <option value="chatgpt">ChatGPT</option>
-            <option value="grok">Grok</option>
-            <option value="claude">Claude</option>
-            <option value="gemini">Gemini</option>
-          </select>
+          <div class="service-pick" id="handoff-service" role="group" aria-label="AI helper">
+            <button type="button" class="seg" data-helper="chatgpt" aria-pressed="true">ChatGPT</button>
+            <button type="button" class="seg" data-helper="grok" aria-pressed="false">Grok</button>
+            <button type="button" class="seg" data-helper="claude" aria-pressed="false">Claude</button>
+            <button type="button" class="seg" data-helper="gemini" aria-pressed="false">Gemini</button>
+          </div>
           <button type="button" class="ghost send" id="send-notes" title="Copy visible notes and open the chosen helper">
             Send to ChatGPT
           </button>
