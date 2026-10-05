@@ -1,5 +1,13 @@
 const STORAGE_KEY = "voice-memory-v1";
+const HELPER_KEY = "voice-memory-helper";
 const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+
+const HELPERS = [
+  { id: "chatgpt", name: "ChatGPT", url: "https://chatgpt.com/" },
+  { id: "grok", name: "Grok", url: "https://grok.com/" },
+  { id: "claude", name: "Claude", url: "https://claude.ai/new" },
+  { id: "gemini", name: "Gemini", url: "https://gemini.google.com/app" },
+];
 
 const els = {
   chips: document.getElementById("chips"),
@@ -12,11 +20,16 @@ const els = {
   toast: document.getElementById("toast"),
   exportTxt: document.getElementById("export-txt"),
   exportJson: document.getElementById("export-json"),
-  askGpt: document.getElementById("ask-gpt"),
+  sendNotes: document.getElementById("send-notes"),
+  service: document.getElementById("handoff-service"),
   search: document.getElementById("search"),
   dialog: document.getElementById("sub-dialog"),
   form: document.getElementById("sub-form"),
   subName: document.getElementById("sub-name"),
+  copyDialog: document.getElementById("copy-dialog"),
+  copyTitle: document.getElementById("copy-title"),
+  copyHelp: document.getElementById("copy-help"),
+  copyText: document.getElementById("copy-text"),
 };
 
 const defaultState = () => ({
@@ -45,7 +58,48 @@ function save() {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
 }
 
+function loadHelperId() {
+  try {
+    const id = localStorage.getItem(HELPER_KEY);
+    if (HELPERS.some((helper) => helper.id === id)) return id;
+  } catch {
+    /* private mode or blocked storage */
+  }
+  return "chatgpt";
+}
+
+function currentHelper() {
+  return HELPERS.find((helper) => helper.id === helperId) || HELPERS[0];
+}
+
+function sendLabel() {
+  return `Send to ${currentHelper().name}`;
+}
+
+function applyHelperLabels() {
+  const helper = currentHelper();
+  const label = sendLabel();
+  els.service.value = helper.id;
+  els.sendNotes.textContent = label;
+  els.sendNotes.title = `Copy visible notes and open ${helper.name}. Paste them in and press send.`;
+  document.querySelectorAll("[data-send]").forEach((button) => {
+    button.textContent = label;
+  });
+}
+
+function setHelper(id) {
+  if (!HELPERS.some((helper) => helper.id === id)) return;
+  helperId = id;
+  try {
+    localStorage.setItem(HELPER_KEY, id);
+  } catch {
+    /* the choice still applies for this visit */
+  }
+  applyHelperLabels();
+}
+
 let state = load();
+let helperId = loadHelperId();
 let recognition = null;
 let listening = false;
 let finalBuffer = "";
@@ -62,7 +116,7 @@ function toast(message) {
   clearTimeout(toastTimer);
   toastTimer = setTimeout(() => {
     els.toast.hidden = true;
-  }, 2400);
+  }, 4000);
 }
 
 function currentSub() {
@@ -99,7 +153,7 @@ function renderChips() {
 function renderFeed() {
   const notes = visibleNotes();
   if (!notes.length) {
-    els.feed.innerHTML = `<div class="empty">No notes here yet.<br />Speak, paste, or drop a file. ChatGPT stays your helper — we only hand notes over.</div>`;
+    els.feed.innerHTML = `<div class="empty">No notes here yet.<br />Speak, paste, or drop a file. We only hand notes to your AI helper.</div>`;
     return;
   }
   els.feed.innerHTML = notes
@@ -119,7 +173,7 @@ function renderFeed() {
         <div class="note-actions">
           <button type="button" class="icon-btn" data-play="${n.id}">Play</button>
           <button type="button" class="icon-btn" data-copy="${n.id}">Copy</button>
-          <button type="button" class="icon-btn" data-gpt="${n.id}">ChatGPT</button>
+          <button type="button" class="icon-btn" data-send="${n.id}">${escapeHtml(sendLabel())}</button>
           <button type="button" class="icon-btn danger" data-delete="${n.id}">Delete</button>
         </div>
       </article>`;
@@ -130,6 +184,7 @@ function renderFeed() {
 function render() {
   renderChips();
   renderFeed();
+  applyHelperLabels();
 }
 
 function escapeHtml(value) {
@@ -175,12 +230,19 @@ function notesAsPrompt(notes = visibleNotes()) {
   return lines.join("\n");
 }
 
-async function copyText(text) {
-  if (!text) return false;
+async function writeClipboard(text) {
+  if (!text || !navigator.clipboard?.writeText) return false;
   try {
     await navigator.clipboard.writeText(text);
     return true;
   } catch {
+    return false;
+  }
+}
+
+async function copyText(text) {
+  if (await writeClipboard(text)) return true;
+  try {
     const area = document.createElement("textarea");
     area.value = text;
     document.body.appendChild(area);
@@ -188,18 +250,43 @@ async function copyText(text) {
     const ok = document.execCommand("copy");
     area.remove();
     return ok;
+  } catch {
+    return false;
   }
 }
 
-async function handoffToChatGPT(text, label = "notes") {
+function showCopyFallback(text, title, help) {
+  els.copyTitle.textContent = title;
+  els.copyHelp.textContent = help;
+  els.copyText.value = text;
+  if (!els.copyDialog.open) els.copyDialog.showModal();
+  els.copyText.focus();
+  els.copyText.select();
+}
+
+function helperPageUrl(helper) {
+  const url = new URL(helper.url);
+  url.search = "";
+  url.hash = "";
+  return url.toString();
+}
+
+async function handoffNotes(text) {
   if (!text) {
     toast("Nothing to send yet");
     return;
   }
-  const copied = await copyText(text);
-  const url = `https://chatgpt.com/?q=${encodeURIComponent(text.slice(0, 1800))}`;
-  window.open(url, "_blank", "noopener");
-  toast(copied ? `Copied ${label} — paste in ChatGPT if needed` : "Opened ChatGPT");
+  const helper = currentHelper();
+  const copied = await writeClipboard(text);
+  if (!copied) {
+    showCopyFallback(
+      text,
+      `Copy for ${helper.name}`,
+      `Select the text and copy it, then paste into ${helper.name} and press send.`
+    );
+  }
+  window.open(helperPageUrl(helper), "_blank", "noopener");
+  if (copied) toast(`Copied. Paste into ${helper.name} and press send.`);
 }
 
 function speak(text) {
@@ -221,7 +308,7 @@ function speak(text) {
 
 function readyHint() {
   return window.matchMedia("(min-width: 980px)").matches
-    ? "Click the mic or press Space. Paste or drop files. ChatGPT button hands work to your OpenAI bot."
+    ? "Click the mic or press Space. Paste or drop files. Send hands notes to your AI helper."
     : "Tap the mic, then speak. Chrome or Edge works best.";
 }
 
@@ -374,7 +461,7 @@ function importPayload(text, filename = "") {
 
 function typingInField() {
   const el = document.activeElement;
-  return el && (el.tagName === "INPUT" || el.tagName === "TEXTAREA" || el.isContentEditable);
+  return el && (el.tagName === "INPUT" || el.tagName === "TEXTAREA" || el.tagName === "SELECT" || el.isContentEditable);
 }
 
 els.chips.addEventListener("click", (event) => {
@@ -420,7 +507,7 @@ els.form.addEventListener("submit", (event) => {
 els.feed.addEventListener("click", (event) => {
   const play = event.target.closest("[data-play]");
   const copy = event.target.closest("[data-copy]");
-  const gpt = event.target.closest("[data-gpt]");
+  const send = event.target.closest("[data-send]");
   const del = event.target.closest("[data-delete]");
   if (play) {
     const note = state.notes.find((n) => n.id === play.dataset.play);
@@ -428,11 +515,16 @@ els.feed.addEventListener("click", (event) => {
   }
   if (copy) {
     const note = state.notes.find((n) => n.id === copy.dataset.copy);
-    if (note) copyText(note.text).then((ok) => toast(ok ? "Copied note" : "Could not copy"));
+    if (note) {
+      copyText(note.text).then((ok) => {
+        if (ok) toast("Copied note");
+        else showCopyFallback(note.text, "Copy this note", "Select the text and copy it.");
+      });
+    }
   }
-  if (gpt) {
-    const note = state.notes.find((n) => n.id === gpt.dataset.gpt);
-    if (note) handoffToChatGPT(notesAsPrompt([note]), "note");
+  if (send) {
+    const note = state.notes.find((n) => n.id === send.dataset.send);
+    if (note) handoffNotes(notesAsPrompt([note]));
   }
   if (del) deleteNote(del.dataset.delete);
 });
@@ -440,7 +532,8 @@ els.feed.addEventListener("click", (event) => {
 els.mic.addEventListener("click", toggleMic);
 els.exportTxt.addEventListener("click", exportTxt);
 els.exportJson.addEventListener("click", exportJson);
-els.askGpt.addEventListener("click", () => handoffToChatGPT(notesAsPrompt(), "notes"));
+els.sendNotes.addEventListener("click", () => handoffNotes(notesAsPrompt()));
+els.service.addEventListener("change", () => setHelper(els.service.value));
 els.search.addEventListener("input", () => {
   query = els.search.value;
   renderFeed();
@@ -449,10 +542,11 @@ els.search.addEventListener("input", () => {
 document.addEventListener("keydown", (event) => {
   if (event.key === "Escape") {
     if (listening) stopListening(true);
-    els.dialog.open && els.dialog.close();
+    if (els.dialog.open) els.dialog.close();
+    if (els.copyDialog.open) els.copyDialog.close();
     return;
   }
-  if (typingInField()) return;
+  if (typingInField() || els.dialog.open || els.copyDialog.open) return;
   if (event.key === " " || event.code === "Space") {
     event.preventDefault();
     toggleMic();
@@ -461,7 +555,7 @@ document.addEventListener("keydown", (event) => {
     els.search.focus();
   } else if (event.key.toLowerCase() === "g" && !event.metaKey && !event.ctrlKey) {
     event.preventDefault();
-    handoffToChatGPT(notesAsPrompt(), "notes");
+    handoffNotes(notesAsPrompt());
   }
 });
 
@@ -505,7 +599,7 @@ if (!SpeechRecognition) {
   els.status.textContent = "Mic unavailable";
   document.querySelector(".layout")?.insertAdjacentHTML(
     "beforebegin",
-    `<p class="banner">This browser cannot transcribe speech. Open this page in Chrome or Edge on HTTPS. You can still paste notes and send them to ChatGPT.</p>`
+    `<p class="banner">This browser cannot transcribe speech. Open this page in Chrome or Edge on HTTPS. You can still paste notes and hand them to your AI helper.</p>`
   );
 } else if (location.protocol !== "https:" && !["localhost", "127.0.0.1"].includes(location.hostname)) {
   els.hint.textContent = "Microphone needs HTTPS.";

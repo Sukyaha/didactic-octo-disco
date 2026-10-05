@@ -109,13 +109,30 @@ button {
 }
 
 .solid,
-.ghost.gpt {
+.ghost.send {
   background: linear-gradient(135deg, var(--accent), #5b4dff);
   border-color: transparent;
 }
 
-.ghost.gpt {
+.ghost.send {
   box-shadow: 0 0 20px rgba(124, 108, 255, 0.25);
+}
+
+.handoff {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.service-pick {
+  font: inherit;
+  color: var(--text);
+  color-scheme: dark;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 8px 12px;
+  cursor: pointer;
 }
 
 .ghost:hover,
@@ -153,6 +170,8 @@ button {
 
 .search:focus,
 dialog input:focus,
+dialog textarea:focus,
+.service-pick:focus-visible,
 button:focus-visible,
 .mic:focus-visible {
   outline: 2px solid var(--accent);
@@ -379,7 +398,8 @@ dialog p {
   color: var(--muted);
 }
 
-dialog input {
+dialog input,
+dialog textarea {
   width: 100%;
   padding: 12px 14px;
   border-radius: 12px;
@@ -387,6 +407,12 @@ dialog input {
   background: #0b0c14;
   color: var(--text);
   font: inherit;
+}
+
+dialog textarea {
+  min-height: 9rem;
+  line-height: 1.45;
+  resize: vertical;
 }
 
 .dialog-actions {

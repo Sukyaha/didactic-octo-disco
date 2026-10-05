@@ -9,7 +9,7 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta
       name="description"
-      content="Voice Memory — speak notes on phone or desktop, then hand them to ChatGPT. Saved only on this device."
+      content="Voice Memory — speak notes on phone or desktop, then hand them to your AI helper. Saved only on this device."
     />
     <title>Voice Memory</title>
     <link rel="manifest" href="./manifest.webmanifest" />
@@ -24,13 +24,21 @@
         <span class="mark" aria-hidden="true"></span>
         <div>
           <h1>Voice Memory</h1>
-          <p class="tag">Speak it. Save it. Hand it to ChatGPT.</p>
+          <p class="tag">Speak it. Save it. Hand it to your AI helper.</p>
         </div>
       </div>
       <div class="top-actions">
-        <button type="button" class="ghost gpt" id="ask-gpt" title="Copy visible notes and open ChatGPT">
-          ChatGPT
-        </button>
+        <div class="handoff">
+          <select id="handoff-service" class="service-pick" aria-label="AI helper">
+            <option value="chatgpt">ChatGPT</option>
+            <option value="grok">Grok</option>
+            <option value="claude">Claude</option>
+            <option value="gemini">Gemini</option>
+          </select>
+          <button type="button" class="ghost send" id="send-notes" title="Copy visible notes and open the chosen helper">
+            Send to ChatGPT
+          </button>
+        </div>
         <button type="button" class="ghost" id="export-txt" title="Export notes as text">TXT</button>
         <button type="button" class="ghost" id="export-json" title="Export notes as JSON">JSON</button>
       </div>
@@ -62,8 +70,8 @@
           </span>
         </button>
         <p class="status" id="status">Ready</p>
-        <p class="keys">Space mic · / search · G ChatGPT · paste or drop a file</p>
-        <p class="partner">Does not replace your OpenAI bot. It only hands notes over.</p>
+        <p class="keys">Space mic · / search · G send · paste or drop a file</p>
+        <p class="partner">Hands notes to your AI helper.</p>
       </footer>
     </div>
 
@@ -84,6 +92,17 @@
         <div class="dialog-actions">
           <button type="button" class="ghost" id="sub-cancel">Cancel</button>
           <button type="submit" value="ok" class="solid">Create</button>
+        </div>
+      </form>
+    </dialog>
+
+    <dialog id="copy-dialog">
+      <form method="dialog">
+        <h2 id="copy-title">Copy this text</h2>
+        <p id="copy-help">Select the text and copy it, then paste into your AI helper and press send.</p>
+        <textarea id="copy-text" readonly rows="8"></textarea>
+        <div class="dialog-actions">
+          <button type="submit" class="solid" value="ok">Done</button>
         </div>
       </form>
     </dialog>

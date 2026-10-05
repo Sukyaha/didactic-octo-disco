@@ -9,7 +9,7 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta
       name="description"
-      content="Voice Memory — speak notes on phone or desktop, then hand them to ChatGPT. Saved only on this device."
+      content="Voice Memory — speak notes on phone or desktop, then hand them to your AI helper. Saved only on this device."
     />
     <title>Voice Memory</title>
     <link rel="icon" href='data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">  <defs>    <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">      <stop offset="0" stop-color="#8b7cff"/>      <stop offset="1" stop-color="#3ee0c0"/>    </linearGradient>  </defs>  <rect width="64" height="64" rx="16" fill="#07080d"/>  <rect x="6" y="6" width="52" height="52" rx="14" fill="url(#g)"/>  <path fill="#fff" d="M32 38.2a6.2 6.2 0 0 0 6.2-6.2V18.8a6.2 6.2 0 1 0-12.4 0V32a6.2 6.2 0 0 0 6.2 6.2Zm12.4-6.2a3.1 3.1 0 0 0-6.2 0 6.2 6.2 0 1 1-12.4 0 3.1 3.1 0 0 0-6.2 0 12.4 12.4 0 0 0 10.8 12.3V50h-5.4a3.1 3.1 0 0 0 0 6.2h12.4a3.1 3.1 0 0 0 0-6.2h-5.4v-5.7A12.4 12.4 0 0 0 44.4 32Z"/></svg>' />
@@ -125,13 +125,30 @@ button {
 }
 
 .solid,
-.ghost.gpt {
+.ghost.send {
   background: linear-gradient(135deg, var(--accent), #5b4dff);
   border-color: transparent;
 }
 
-.ghost.gpt {
+.ghost.send {
   box-shadow: 0 0 20px rgba(124, 108, 255, 0.25);
+}
+
+.handoff {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.service-pick {
+  font: inherit;
+  color: var(--text);
+  color-scheme: dark;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 8px 12px;
+  cursor: pointer;
 }
 
 .ghost:hover,
@@ -169,6 +186,8 @@ button {
 
 .search:focus,
 dialog input:focus,
+dialog textarea:focus,
+.service-pick:focus-visible,
 button:focus-visible,
 .mic:focus-visible {
   outline: 2px solid var(--accent);
@@ -395,7 +414,8 @@ dialog p {
   color: var(--muted);
 }
 
-dialog input {
+dialog input,
+dialog textarea {
   width: 100%;
   padding: 12px 14px;
   border-radius: 12px;
@@ -403,6 +423,12 @@ dialog input {
   background: #0b0c14;
   color: var(--text);
   font: inherit;
+}
+
+dialog textarea {
+  min-height: 9rem;
+  line-height: 1.45;
+  resize: vertical;
 }
 
 .dialog-actions {
@@ -483,13 +509,21 @@ dialog input {
         <span class="mark" aria-hidden="true"></span>
         <div>
           <h1>Voice Memory</h1>
-          <p class="tag">Speak it. Save it. Hand it to ChatGPT.</p>
+          <p class="tag">Speak it. Save it. Hand it to your AI helper.</p>
         </div>
       </div>
       <div class="top-actions">
-        <button type="button" class="ghost gpt" id="ask-gpt" title="Copy visible notes and open ChatGPT">
-          ChatGPT
-        </button>
+        <div class="handoff">
+          <select id="handoff-service" class="service-pick" aria-label="AI helper">
+            <option value="chatgpt">ChatGPT</option>
+            <option value="grok">Grok</option>
+            <option value="claude">Claude</option>
+            <option value="gemini">Gemini</option>
+          </select>
+          <button type="button" class="ghost send" id="send-notes" title="Copy visible notes and open the chosen helper">
+            Send to ChatGPT
+          </button>
+        </div>
         <button type="button" class="ghost" id="export-txt" title="Export notes as text">TXT</button>
         <button type="button" class="ghost" id="export-json" title="Export notes as JSON">JSON</button>
       </div>
@@ -521,8 +555,8 @@ dialog input {
           </span>
         </button>
         <p class="status" id="status">Ready</p>
-        <p class="keys">Space mic · / search · G ChatGPT · paste or drop a file</p>
-        <p class="partner">Does not replace your OpenAI bot. It only hands notes over.</p>
+        <p class="keys">Space mic · / search · G send · paste or drop a file</p>
+        <p class="partner">Hands notes to your AI helper.</p>
       </footer>
     </div>
 
@@ -547,9 +581,28 @@ dialog input {
       </form>
     </dialog>
 
+    <dialog id="copy-dialog">
+      <form method="dialog">
+        <h2 id="copy-title">Copy this text</h2>
+        <p id="copy-help">Select the text and copy it, then paste into your AI helper and press send.</p>
+        <textarea id="copy-text" readonly rows="8"></textarea>
+        <div class="dialog-actions">
+          <button type="submit" class="solid" value="ok">Done</button>
+        </div>
+      </form>
+    </dialog>
+
     <script>
 const STORAGE_KEY = "voice-memory-v1";
+const HELPER_KEY = "voice-memory-helper";
 const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+
+const HELPERS = [
+  { id: "chatgpt", name: "ChatGPT", url: "https://chatgpt.com/" },
+  { id: "grok", name: "Grok", url: "https://grok.com/" },
+  { id: "claude", name: "Claude", url: "https://claude.ai/new" },
+  { id: "gemini", name: "Gemini", url: "https://gemini.google.com/app" },
+];
 
 const els = {
   chips: document.getElementById("chips"),
@@ -562,11 +615,16 @@ const els = {
   toast: document.getElementById("toast"),
   exportTxt: document.getElementById("export-txt"),
   exportJson: document.getElementById("export-json"),
-  askGpt: document.getElementById("ask-gpt"),
+  sendNotes: document.getElementById("send-notes"),
+  service: document.getElementById("handoff-service"),
   search: document.getElementById("search"),
   dialog: document.getElementById("sub-dialog"),
   form: document.getElementById("sub-form"),
   subName: document.getElementById("sub-name"),
+  copyDialog: document.getElementById("copy-dialog"),
+  copyTitle: document.getElementById("copy-title"),
+  copyHelp: document.getElementById("copy-help"),
+  copyText: document.getElementById("copy-text"),
 };
 
 const defaultState = () => ({
@@ -595,7 +653,48 @@ function save() {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
 }
 
+function loadHelperId() {
+  try {
+    const id = localStorage.getItem(HELPER_KEY);
+    if (HELPERS.some((helper) => helper.id === id)) return id;
+  } catch {
+    /* private mode or blocked storage */
+  }
+  return "chatgpt";
+}
+
+function currentHelper() {
+  return HELPERS.find((helper) => helper.id === helperId) || HELPERS[0];
+}
+
+function sendLabel() {
+  return `Send to ${currentHelper().name}`;
+}
+
+function applyHelperLabels() {
+  const helper = currentHelper();
+  const label = sendLabel();
+  els.service.value = helper.id;
+  els.sendNotes.textContent = label;
+  els.sendNotes.title = `Copy visible notes and open ${helper.name}. Paste them in and press send.`;
+  document.querySelectorAll("[data-send]").forEach((button) => {
+    button.textContent = label;
+  });
+}
+
+function setHelper(id) {
+  if (!HELPERS.some((helper) => helper.id === id)) return;
+  helperId = id;
+  try {
+    localStorage.setItem(HELPER_KEY, id);
+  } catch {
+    /* the choice still applies for this visit */
+  }
+  applyHelperLabels();
+}
+
 let state = load();
+let helperId = loadHelperId();
 let recognition = null;
 let listening = false;
 let finalBuffer = "";
@@ -612,7 +711,7 @@ function toast(message) {
   clearTimeout(toastTimer);
   toastTimer = setTimeout(() => {
     els.toast.hidden = true;
-  }, 2400);
+  }, 4000);
 }
 
 function currentSub() {
@@ -649,7 +748,7 @@ function renderChips() {
 function renderFeed() {
   const notes = visibleNotes();
   if (!notes.length) {
-    els.feed.innerHTML = `<div class="empty">No notes here yet.<br />Speak, paste, or drop a file. ChatGPT stays your helper — we only hand notes over.</div>`;
+    els.feed.innerHTML = `<div class="empty">No notes here yet.<br />Speak, paste, or drop a file. We only hand notes to your AI helper.</div>`;
     return;
   }
   els.feed.innerHTML = notes
@@ -669,7 +768,7 @@ function renderFeed() {
         <div class="note-actions">
           <button type="button" class="icon-btn" data-play="${n.id}">Play</button>
           <button type="button" class="icon-btn" data-copy="${n.id}">Copy</button>
-          <button type="button" class="icon-btn" data-gpt="${n.id}">ChatGPT</button>
+          <button type="button" class="icon-btn" data-send="${n.id}">${escapeHtml(sendLabel())}</button>
           <button type="button" class="icon-btn danger" data-delete="${n.id}">Delete</button>
         </div>
       </article>`;
@@ -680,6 +779,7 @@ function renderFeed() {
 function render() {
   renderChips();
   renderFeed();
+  applyHelperLabels();
 }
 
 function escapeHtml(value) {
@@ -725,12 +825,19 @@ function notesAsPrompt(notes = visibleNotes()) {
   return lines.join("\n");
 }
 
-async function copyText(text) {
-  if (!text) return false;
+async function writeClipboard(text) {
+  if (!text || !navigator.clipboard?.writeText) return false;
   try {
     await navigator.clipboard.writeText(text);
     return true;
   } catch {
+    return false;
+  }
+}
+
+async function copyText(text) {
+  if (await writeClipboard(text)) return true;
+  try {
     const area = document.createElement("textarea");
     area.value = text;
     document.body.appendChild(area);
@@ -738,18 +845,43 @@ async function copyText(text) {
     const ok = document.execCommand("copy");
     area.remove();
     return ok;
+  } catch {
+    return false;
   }
 }
 
-async function handoffToChatGPT(text, label = "notes") {
+function showCopyFallback(text, title, help) {
+  els.copyTitle.textContent = title;
+  els.copyHelp.textContent = help;
+  els.copyText.value = text;
+  if (!els.copyDialog.open) els.copyDialog.showModal();
+  els.copyText.focus();
+  els.copyText.select();
+}
+
+function helperPageUrl(helper) {
+  const url = new URL(helper.url);
+  url.search = "";
+  url.hash = "";
+  return url.toString();
+}
+
+async function handoffNotes(text) {
   if (!text) {
     toast("Nothing to send yet");
     return;
   }
-  const copied = await copyText(text);
-  const url = `https://chatgpt.com/?q=${encodeURIComponent(text.slice(0, 1800))}`;
-  window.open(url, "_blank", "noopener");
-  toast(copied ? `Copied ${label} — paste in ChatGPT if needed` : "Opened ChatGPT");
+  const helper = currentHelper();
+  const copied = await writeClipboard(text);
+  if (!copied) {
+    showCopyFallback(
+      text,
+      `Copy for ${helper.name}`,
+      `Select the text and copy it, then paste into ${helper.name} and press send.`
+    );
+  }
+  window.open(helperPageUrl(helper), "_blank", "noopener");
+  if (copied) toast(`Copied. Paste into ${helper.name} and press send.`);
 }
 
 function speak(text) {
@@ -771,7 +903,7 @@ function speak(text) {
 
 function readyHint() {
   return window.matchMedia("(min-width: 980px)").matches
-    ? "Click the mic or press Space. Paste or drop files. ChatGPT button hands work to your OpenAI bot."
+    ? "Click the mic or press Space. Paste or drop files. Send hands notes to your AI helper."
     : "Tap the mic, then speak. Chrome or Edge works best.";
 }
 
@@ -924,7 +1056,7 @@ function importPayload(text, filename = "") {
 
 function typingInField() {
   const el = document.activeElement;
-  return el && (el.tagName === "INPUT" || el.tagName === "TEXTAREA" || el.isContentEditable);
+  return el && (el.tagName === "INPUT" || el.tagName === "TEXTAREA" || el.tagName === "SELECT" || el.isContentEditable);
 }
 
 els.chips.addEventListener("click", (event) => {
@@ -970,7 +1102,7 @@ els.form.addEventListener("submit", (event) => {
 els.feed.addEventListener("click", (event) => {
   const play = event.target.closest("[data-play]");
   const copy = event.target.closest("[data-copy]");
-  const gpt = event.target.closest("[data-gpt]");
+  const send = event.target.closest("[data-send]");
   const del = event.target.closest("[data-delete]");
   if (play) {
     const note = state.notes.find((n) => n.id === play.dataset.play);
@@ -978,11 +1110,16 @@ els.feed.addEventListener("click", (event) => {
   }
   if (copy) {
     const note = state.notes.find((n) => n.id === copy.dataset.copy);
-    if (note) copyText(note.text).then((ok) => toast(ok ? "Copied note" : "Could not copy"));
+    if (note) {
+      copyText(note.text).then((ok) => {
+        if (ok) toast("Copied note");
+        else showCopyFallback(note.text, "Copy this note", "Select the text and copy it.");
+      });
+    }
   }
-  if (gpt) {
-    const note = state.notes.find((n) => n.id === gpt.dataset.gpt);
-    if (note) handoffToChatGPT(notesAsPrompt([note]), "note");
+  if (send) {
+    const note = state.notes.find((n) => n.id === send.dataset.send);
+    if (note) handoffNotes(notesAsPrompt([note]));
   }
   if (del) deleteNote(del.dataset.delete);
 });
@@ -990,7 +1127,8 @@ els.feed.addEventListener("click", (event) => {
 els.mic.addEventListener("click", toggleMic);
 els.exportTxt.addEventListener("click", exportTxt);
 els.exportJson.addEventListener("click", exportJson);
-els.askGpt.addEventListener("click", () => handoffToChatGPT(notesAsPrompt(), "notes"));
+els.sendNotes.addEventListener("click", () => handoffNotes(notesAsPrompt()));
+els.service.addEventListener("change", () => setHelper(els.service.value));
 els.search.addEventListener("input", () => {
   query = els.search.value;
   renderFeed();
@@ -999,10 +1137,11 @@ els.search.addEventListener("input", () => {
 document.addEventListener("keydown", (event) => {
   if (event.key === "Escape") {
     if (listening) stopListening(true);
-    els.dialog.open && els.dialog.close();
+    if (els.dialog.open) els.dialog.close();
+    if (els.copyDialog.open) els.copyDialog.close();
     return;
   }
-  if (typingInField()) return;
+  if (typingInField() || els.dialog.open || els.copyDialog.open) return;
   if (event.key === " " || event.code === "Space") {
     event.preventDefault();
     toggleMic();
@@ -1011,7 +1150,7 @@ document.addEventListener("keydown", (event) => {
     els.search.focus();
   } else if (event.key.toLowerCase() === "g" && !event.metaKey && !event.ctrlKey) {
     event.preventDefault();
-    handoffToChatGPT(notesAsPrompt(), "notes");
+    handoffNotes(notesAsPrompt());
   }
 });
 
@@ -1055,7 +1194,7 @@ if (!SpeechRecognition) {
   els.status.textContent = "Mic unavailable";
   document.querySelector(".layout")?.insertAdjacentHTML(
     "beforebegin",
-    `<p class="banner">This browser cannot transcribe speech. Open this page in Chrome or Edge on HTTPS. You can still paste notes and send them to ChatGPT.</p>`
+    `<p class="banner">This browser cannot transcribe speech. Open this page in Chrome or Edge on HTTPS. You can still paste notes and hand them to your AI helper.</p>`
   );
 } else if (location.protocol !== "https:" && !["localhost", "127.0.0.1"].includes(location.hostname)) {
   els.hint.textContent = "Microphone needs HTTPS.";
