@@ -1,5 +1,9 @@
 # Voice Memory
 
-Static phone-first notes app. Speak a note, save it on this device, play it back, export TXT/JSON.
+Static browser app for phone and desktop. Speak or paste notes, save them on this device, play them back, export TXT/JSON, or hand them to your AI helper.
 
-Open the published HTTPS URL in Chrome or Edge. Allow the microphone, tap the big button, speak, tap again to save.
+Next to Send, pick ChatGPT, Grok, Claude, or Gemini. All four stay visible. The choice is remembered on this device. Send copies the notes and opens a fresh chat. Paste them in and press send — the note is not placed in the link, so nothing is sent automatically.
+
+Desktop: Space toggles the mic, `/` searches, `G` sends the visible notes to the chosen helper. Paste or drop a `.txt` / `.json` file to import.
+
+Use Chrome or Edge on HTTPS. Allow the microphone, tap or click the mic, speak, tap again to save.

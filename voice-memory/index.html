@@ -4,11 +4,12 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <meta name="theme-color" content="#07080d" />
+    <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta
       name="description"
-      content="Voice Memory — speak notes, organize them into subscriptions, and play them back. Saved only on this device."
+      content="Voice Memory — speak notes on phone or desktop, then hand them to your AI helper. Saved only on this device."
     />
     <title>Voice Memory</title>
     <link rel="icon" href='data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">  <defs>    <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">      <stop offset="0" stop-color="#8b7cff"/>      <stop offset="1" stop-color="#3ee0c0"/>    </linearGradient>  </defs>  <rect width="64" height="64" rx="16" fill="#07080d"/>  <rect x="6" y="6" width="52" height="52" rx="14" fill="url(#g)"/>  <path fill="#fff" d="M32 38.2a6.2 6.2 0 0 0 6.2-6.2V18.8a6.2 6.2 0 1 0-12.4 0V32a6.2 6.2 0 0 0 6.2 6.2Zm12.4-6.2a3.1 3.1 0 0 0-6.2 0 6.2 6.2 0 1 1-12.4 0 3.1 3.1 0 0 0-6.2 0 12.4 12.4 0 0 0 10.8 12.3V50h-5.4a3.1 3.1 0 0 0 0 6.2h12.4a3.1 3.1 0 0 0 0-6.2h-5.4v-5.7A12.4 12.4 0 0 0 44.4 32Z"/></svg>' />
@@ -43,6 +44,11 @@ body {
 body {
   min-height: 100dvh;
   padding: 18px 18px calc(220px + var(--safe-bottom));
+}
+
+body.dragover {
+  outline: 2px dashed var(--accent-2);
+  outline-offset: -10px;
 }
 
 .bg {
@@ -85,7 +91,8 @@ h1 {
 .tag,
 .hint,
 .status,
-.muted {
+.muted,
+.keys {
   color: var(--muted);
 }
 
@@ -96,6 +103,8 @@ h1 {
 
 .top-actions {
   display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
   gap: 8px;
 }
 
@@ -115,21 +124,93 @@ button {
   border: 1px solid var(--line);
 }
 
-.solid {
+.solid,
+.ghost.send {
   background: linear-gradient(135deg, var(--accent), #5b4dff);
   border-color: transparent;
+}
+
+.ghost.send {
+  box-shadow: 0 0 20px rgba(124, 108, 255, 0.25);
+}
+
+.handoff {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.service-pick {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 2px;
+  padding: 3px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--line);
+}
+
+.seg {
+  border: 0;
+  border-radius: 999px;
+  padding: 6px 10px;
+  background: transparent;
+  color: var(--muted);
+  font: inherit;
+  font-size: 0.85rem;
+}
+
+.seg[aria-pressed="true"] {
+  background: rgba(139, 124, 255, 0.38);
+  color: var(--text);
+}
+
+.ghost:hover,
+.solid:hover,
+.icon-btn:hover,
+.chip:hover {
+  border-color: rgba(255, 255, 255, 0.2);
 }
 
 .ghost:active,
 .solid:active,
 .icon-btn:active,
 .chip:active,
-.mic:active {
+.mic:active,
+.seg:active {
   transform: scale(0.98);
 }
 
+.toolbar {
+  margin-top: 14px;
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.search {
+  flex: 1;
+  min-width: 0;
+  padding: 10px 14px;
+  border-radius: 12px;
+  border: 1px solid var(--line);
+  background: #0b0c14;
+  color: var(--text);
+  font: inherit;
+}
+
+.search:focus,
+dialog input:focus,
+dialog textarea:focus,
+.seg:focus-visible,
+button:focus-visible,
+.mic:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
 .subs {
-  margin-top: 18px;
+  margin-top: 14px;
   display: flex;
   gap: 8px;
   overflow-x: auto;
@@ -164,8 +245,11 @@ button {
   color: var(--accent-2);
 }
 
-.feed {
+.layout {
   margin-top: 16px;
+}
+
+.feed {
   display: grid;
   gap: 12px;
 }
@@ -205,6 +289,7 @@ button {
 
 .note-actions {
   display: flex;
+  flex-wrap: wrap;
   gap: 8px;
   margin-top: 12px;
 }
@@ -232,9 +317,15 @@ button {
 
 .hint,
 .live,
-.status {
+.status,
+.keys {
   margin: 0;
   text-align: center;
+}
+
+.keys {
+  font-size: 0.78rem;
+  display: none;
 }
 
 .live {
@@ -338,7 +429,8 @@ dialog p {
   color: var(--muted);
 }
 
-dialog input {
+dialog input,
+dialog textarea {
   width: 100%;
   padding: 12px 14px;
   border-radius: 12px;
@@ -346,6 +438,12 @@ dialog input {
   background: #0b0c14;
   color: var(--text);
   font: inherit;
+}
+
+dialog textarea {
+  min-height: 9rem;
+  line-height: 1.45;
+  resize: vertical;
 }
 
 .dialog-actions {
@@ -363,10 +461,78 @@ dialog input {
   border-radius: 14px;
 }
 
+.partner {
+  margin: 0;
+  font-size: 0.8rem;
+  color: var(--muted);
+}
+
+@media (max-width: 719px) {
+  .top {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .top-actions {
+    justify-content: flex-start;
+    align-items: flex-start;
+  }
+
+  .handoff {
+    flex-direction: column;
+    align-items: flex-start;
+    width: 100%;
+  }
+
+  .service-pick {
+    flex-wrap: nowrap;
+  }
+}
+
 @media (min-width: 720px) {
   body {
     max-width: 720px;
     margin: 0 auto;
+  }
+}
+
+@media (min-width: 980px) {
+  body {
+    max-width: 1120px;
+    padding: 28px 28px 32px;
+  }
+
+  .keys {
+    display: block;
+  }
+
+  .layout {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 320px;
+    gap: 22px;
+    align-items: start;
+  }
+
+  .dock {
+    position: sticky;
+    top: 24px;
+    left: auto;
+    right: auto;
+    bottom: auto;
+    padding: 22px 16px;
+    border-radius: 24px;
+    border: 1px solid var(--line);
+    background: var(--panel);
+    box-shadow: var(--shadow);
+  }
+
+  .toast {
+    bottom: 32px;
+  }
+
+  .mic {
+    width: 168px;
+    height: 168px;
   }
 }
 
@@ -380,43 +546,58 @@ dialog input {
         <span class="mark" aria-hidden="true"></span>
         <div>
           <h1>Voice Memory</h1>
-          <p class="tag">Speak it. Save it. Hear it back.</p>
+          <p class="tag">Speak it. Save it. Hand it to your AI helper.</p>
         </div>
       </div>
       <div class="top-actions">
-        <button type="button" class="ghost" id="export-txt" title="Export notes as text">
-          TXT
-        </button>
-        <button type="button" class="ghost" id="export-json" title="Export notes as JSON">
-          JSON
-        </button>
+        <div class="handoff">
+          <div class="service-pick" id="handoff-service" role="group" aria-label="AI helper">
+            <button type="button" class="seg" data-helper="chatgpt" aria-pressed="true">ChatGPT</button>
+            <button type="button" class="seg" data-helper="grok" aria-pressed="false">Grok</button>
+            <button type="button" class="seg" data-helper="claude" aria-pressed="false">Claude</button>
+            <button type="button" class="seg" data-helper="gemini" aria-pressed="false">Gemini</button>
+          </div>
+          <button type="button" class="ghost send" id="send-notes" title="Copy visible notes and open the chosen helper">
+            Send to ChatGPT
+          </button>
+        </div>
+        <button type="button" class="ghost" id="export-txt" title="Export notes as text">TXT</button>
+        <button type="button" class="ghost" id="export-json" title="Export notes as JSON">JSON</button>
       </div>
     </header>
+
+    <div class="toolbar">
+      <input id="search" class="search" type="search" placeholder="Search notes  (/)" autocomplete="off" />
+    </div>
 
     <section class="subs" aria-label="Subscriptions">
       <div class="chips" id="chips"></div>
       <button type="button" class="chip add" id="add-sub">+ New</button>
     </section>
 
-    <main class="feed" id="feed" aria-live="polite"></main>
+    <div class="layout">
+      <main class="feed" id="feed" aria-live="polite"></main>
+
+      <footer class="dock">
+        <p class="hint" id="hint">Tap the mic, then speak. Chrome or Edge works best.</p>
+        <p class="live" id="live" hidden></p>
+        <button type="button" class="mic" id="mic" aria-pressed="false" aria-label="Start listening">
+          <span class="mic-ring"></span>
+          <span class="mic-core">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path
+                d="M12 14.5a3.5 3.5 0 0 0 3.5-3.5V6a3.5 3.5 0 1 0-7 0v5a3.5 3.5 0 0 0 3.5 3.5Zm7-3.5a1 1 0 1 0-2 0 5 5 0 0 1-10 0 1 1 0 1 0-2 0 7 7 0 0 0 6 6.93V20H9a1 1 0 1 0 0 2h6a1 1 0 1 0 0-2h-2v-2.07A7 7 0 0 0 19 11Z"
+              />
+            </svg>
+          </span>
+        </button>
+        <p class="status" id="status">Ready</p>
+        <p class="keys">Space mic · / search · G send · paste or drop a file</p>
+        <p class="partner">Hands notes to your AI helper.</p>
+      </footer>
+    </div>
 
     <div class="toast" id="toast" hidden></div>
-
-    <footer class="dock">
-      <p class="hint" id="hint">Tap the mic, then speak. Chrome or Edge works best.</p>
-      <p class="live" id="live" hidden></p>
-      <button type="button" class="mic" id="mic" aria-pressed="false" aria-label="Start listening">
-        <span class="mic-ring"></span>
-        <span class="mic-core">
-          <svg viewBox="0 0 24 24" aria-hidden="true">
-            <path
-              d="M12 14.5a3.5 3.5 0 0 0 3.5-3.5V6a3.5 3.5 0 1 0-7 0v5a3.5 3.5 0 0 0 3.5 3.5Zm7-3.5a1 1 0 1 0-2 0 5 5 0 0 1-10 0 1 1 0 1 0-2 0 7 7 0 0 0 6 6.93V20H9a1 1 0 1 0 0 2h6a1 1 0 1 0 0-2h-2v-2.07A7 7 0 0 0 19 11Z"
-            />
-          </svg>
-        </span>
-      </button>
-      <p class="status" id="status">Ready</p>
-    </footer>
 
     <dialog id="sub-dialog">
       <form method="dialog" id="sub-form">
@@ -437,9 +618,28 @@ dialog input {
       </form>
     </dialog>
 
+    <dialog id="copy-dialog">
+      <form method="dialog">
+        <h2 id="copy-title">Copy this text</h2>
+        <p id="copy-help">Select the text and copy it, then paste into your AI helper and press send.</p>
+        <textarea id="copy-text" readonly rows="8"></textarea>
+        <div class="dialog-actions">
+          <button type="submit" class="solid" value="ok">Done</button>
+        </div>
+      </form>
+    </dialog>
+
     <script>
 const STORAGE_KEY = "voice-memory-v1";
+const HELPER_KEY = "voice-memory-helper";
 const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+
+const HELPERS = [
+  { id: "chatgpt", name: "ChatGPT", url: "https://chatgpt.com/" },
+  { id: "grok", name: "Grok", url: "https://grok.com/" },
+  { id: "claude", name: "Claude", url: "https://claude.ai/new" },
+  { id: "gemini", name: "Gemini", url: "https://gemini.google.com/app" },
+];
 
 const els = {
   chips: document.getElementById("chips"),
@@ -452,9 +652,16 @@ const els = {
   toast: document.getElementById("toast"),
   exportTxt: document.getElementById("export-txt"),
   exportJson: document.getElementById("export-json"),
+  sendNotes: document.getElementById("send-notes"),
+  service: document.getElementById("handoff-service"),
+  search: document.getElementById("search"),
   dialog: document.getElementById("sub-dialog"),
   form: document.getElementById("sub-form"),
   subName: document.getElementById("sub-name"),
+  copyDialog: document.getElementById("copy-dialog"),
+  copyTitle: document.getElementById("copy-title"),
+  copyHelp: document.getElementById("copy-help"),
+  copyText: document.getElementById("copy-text"),
 };
 
 const defaultState = () => ({
@@ -483,11 +690,55 @@ function save() {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
 }
 
+function loadHelperId() {
+  try {
+    const id = localStorage.getItem(HELPER_KEY);
+    if (HELPERS.some((helper) => helper.id === id)) return id;
+  } catch {
+    /* private mode or blocked storage */
+  }
+  return "chatgpt";
+}
+
+function currentHelper() {
+  return HELPERS.find((helper) => helper.id === helperId) || HELPERS[0];
+}
+
+function sendLabel() {
+  return `Send to ${currentHelper().name}`;
+}
+
+function applyHelperLabels() {
+  const helper = currentHelper();
+  const label = sendLabel();
+  els.sendNotes.textContent = label;
+  els.sendNotes.title = `Copy visible notes and open ${helper.name}. Paste them in and press send.`;
+  document.querySelectorAll("[data-helper]").forEach((button) => {
+    button.setAttribute("aria-pressed", String(button.dataset.helper === helper.id));
+  });
+  document.querySelectorAll("[data-send]").forEach((button) => {
+    button.textContent = label;
+  });
+}
+
+function setHelper(id) {
+  if (!HELPERS.some((helper) => helper.id === id)) return;
+  helperId = id;
+  try {
+    localStorage.setItem(HELPER_KEY, id);
+  } catch {
+    /* the choice still applies for this visit */
+  }
+  applyHelperLabels();
+}
+
 let state = load();
+let helperId = loadHelperId();
 let recognition = null;
 let listening = false;
 let finalBuffer = "";
 let toastTimer = 0;
+let query = "";
 
 function uid() {
   return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
@@ -499,7 +750,7 @@ function toast(message) {
   clearTimeout(toastTimer);
   toastTimer = setTimeout(() => {
     els.toast.hidden = true;
-  }, 2200);
+  }, 4000);
 }
 
 function currentSub() {
@@ -507,10 +758,13 @@ function currentSub() {
 }
 
 function visibleNotes() {
-  if (state.activeId === "all") return [...state.notes].sort((a, b) => b.createdAt - a.createdAt);
-  return state.notes
-    .filter((n) => n.subscriptionId === state.activeId)
-    .sort((a, b) => b.createdAt - a.createdAt);
+  const q = query.trim().toLowerCase();
+  let notes =
+    state.activeId === "all"
+      ? [...state.notes]
+      : state.notes.filter((n) => n.subscriptionId === state.activeId);
+  if (q) notes = notes.filter((n) => n.text.toLowerCase().includes(q) || subName(n.subscriptionId).toLowerCase().includes(q));
+  return notes.sort((a, b) => b.createdAt - a.createdAt);
 }
 
 function subName(id) {
@@ -533,7 +787,7 @@ function renderChips() {
 function renderFeed() {
   const notes = visibleNotes();
   if (!notes.length) {
-    els.feed.innerHTML = `<div class="empty">No notes here yet.<br />Tap the mic and speak a memory.</div>`;
+    els.feed.innerHTML = `<div class="empty">No notes here yet.<br />Speak, paste, or drop a file. We only hand notes to your AI helper.</div>`;
     return;
   }
   els.feed.innerHTML = notes
@@ -552,6 +806,8 @@ function renderFeed() {
         <p>${escapeHtml(n.text)}</p>
         <div class="note-actions">
           <button type="button" class="icon-btn" data-play="${n.id}">Play</button>
+          <button type="button" class="icon-btn" data-copy="${n.id}">Copy</button>
+          <button type="button" class="icon-btn" data-send="${n.id}">${escapeHtml(sendLabel())}</button>
           <button type="button" class="icon-btn danger" data-delete="${n.id}">Delete</button>
         </div>
       </article>`;
@@ -562,6 +818,7 @@ function renderFeed() {
 function render() {
   renderChips();
   renderFeed();
+  applyHelperLabels();
 }
 
 function escapeHtml(value) {
@@ -593,6 +850,79 @@ function deleteNote(id) {
   render();
 }
 
+function notesAsPrompt(notes = visibleNotes()) {
+  if (!notes.length) return "";
+  const lines = [
+    "These are notes from Voice Memory on my desktop.",
+    "Please help with them — organize, answer, or turn them into next steps.",
+    "",
+  ];
+  for (const note of notes) {
+    lines.push(`[${subName(note.subscriptionId)} · ${new Date(note.createdAt).toLocaleString()}]`);
+    lines.push(note.text, "");
+  }
+  return lines.join("\n");
+}
+
+async function writeClipboard(text) {
+  if (!text || !navigator.clipboard?.writeText) return false;
+  try {
+    await navigator.clipboard.writeText(text);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+async function copyText(text) {
+  if (await writeClipboard(text)) return true;
+  try {
+    const area = document.createElement("textarea");
+    area.value = text;
+    document.body.appendChild(area);
+    area.select();
+    const ok = document.execCommand("copy");
+    area.remove();
+    return ok;
+  } catch {
+    return false;
+  }
+}
+
+function showCopyFallback(text, title, help) {
+  els.copyTitle.textContent = title;
+  els.copyHelp.textContent = help;
+  els.copyText.value = text;
+  if (!els.copyDialog.open) els.copyDialog.showModal();
+  els.copyText.focus();
+  els.copyText.select();
+}
+
+function helperPageUrl(helper) {
+  const url = new URL(helper.url);
+  url.search = "";
+  url.hash = "";
+  return url.toString();
+}
+
+async function handoffNotes(text) {
+  if (!text) {
+    toast("Nothing to send yet");
+    return;
+  }
+  const helper = currentHelper();
+  const copied = await writeClipboard(text);
+  if (!copied) {
+    showCopyFallback(
+      text,
+      `Copy for ${helper.name}`,
+      `Select the text and copy it, then paste into ${helper.name} and press send.`
+    );
+  }
+  window.open(helperPageUrl(helper), "_blank", "noopener");
+  if (copied) toast(`Copied. Paste into ${helper.name} and press send.`);
+}
+
 function speak(text) {
   window.speechSynthesis.cancel();
   const utterance = new SpeechSynthesisUtterance(text);
@@ -610,6 +940,12 @@ function speak(text) {
   };
 }
 
+function readyHint() {
+  return window.matchMedia("(min-width: 980px)").matches
+    ? "Click the mic or press Space. Paste or drop files. Send hands notes to your AI helper."
+    : "Tap the mic, then speak. Chrome or Edge works best.";
+}
+
 function setListening(on) {
   listening = on;
   els.mic.classList.toggle("listening", on);
@@ -617,9 +953,7 @@ function setListening(on) {
   els.mic.setAttribute("aria-label", on ? "Stop listening" : "Start listening");
   els.live.hidden = !on;
   els.status.textContent = on ? "Listening…" : "Ready";
-  els.hint.textContent = on
-    ? "Tap the mic again to save."
-    : "Tap the mic, then speak. Chrome or Edge works best.";
+  els.hint.textContent = on ? "Click the mic or press Space to save." : readyHint();
 }
 
 function ensureRecognition() {
@@ -663,6 +997,15 @@ function ensureRecognition() {
   };
 
   return recognition;
+}
+
+function toggleMic() {
+  if (!SpeechRecognition) {
+    toast("Use Chrome or Edge for the microphone");
+    return;
+  }
+  if (listening) stopListening(true);
+  else startListening();
 }
 
 function startListening() {
@@ -709,11 +1052,7 @@ function exportJson() {
 }
 
 function exportTxt() {
-  const lines = [
-    "Voice Memory export",
-    `Exported ${new Date().toLocaleString()}`,
-    "",
-  ];
+  const lines = ["Voice Memory export", `Exported ${new Date().toLocaleString()}`, ""];
   for (const sub of state.subscriptions) {
     const notes = state.notes.filter((n) => n.subscriptionId === sub.id);
     lines.push(`# ${sub.name}`);
@@ -728,6 +1067,35 @@ function exportTxt() {
     lines.join("\n"),
     "text/plain"
   );
+}
+
+function importPayload(text, filename = "") {
+  const trimmed = text.trim();
+  if (!trimmed) return;
+  if (filename.endsWith(".json") || trimmed.startsWith("{") || trimmed.startsWith("[")) {
+    try {
+      const data = JSON.parse(trimmed);
+      if (data.subscriptions && Array.isArray(data.notes)) {
+        state = {
+          activeId: data.activeId || data.subscriptions[0]?.id || "inbox",
+          subscriptions: data.subscriptions,
+          notes: data.notes,
+        };
+        save();
+        render();
+        toast("Imported Voice Memory JSON");
+        return;
+      }
+    } catch {
+      /* fall through to plain text */
+    }
+  }
+  addNote(trimmed);
+}
+
+function typingInField() {
+  const el = document.activeElement;
+  return el && (el.tagName === "INPUT" || el.tagName === "TEXTAREA" || el.tagName === "SELECT" || el.isContentEditable);
 }
 
 els.chips.addEventListener("click", (event) => {
@@ -772,36 +1140,108 @@ els.form.addEventListener("submit", (event) => {
 
 els.feed.addEventListener("click", (event) => {
   const play = event.target.closest("[data-play]");
+  const copy = event.target.closest("[data-copy]");
+  const send = event.target.closest("[data-send]");
   const del = event.target.closest("[data-delete]");
   if (play) {
     const note = state.notes.find((n) => n.id === play.dataset.play);
     if (note) speak(note.text);
   }
+  if (copy) {
+    const note = state.notes.find((n) => n.id === copy.dataset.copy);
+    if (note) {
+      copyText(note.text).then((ok) => {
+        if (ok) toast("Copied note");
+        else showCopyFallback(note.text, "Copy this note", "Select the text and copy it.");
+      });
+    }
+  }
+  if (send) {
+    const note = state.notes.find((n) => n.id === send.dataset.send);
+    if (note) handoffNotes(notesAsPrompt([note]));
+  }
   if (del) deleteNote(del.dataset.delete);
 });
 
-els.mic.addEventListener("click", () => {
-  if (!SpeechRecognition) {
-    toast("Use Chrome or Edge for the microphone");
-    return;
-  }
-  if (listening) stopListening(true);
-  else startListening();
-});
-
+els.mic.addEventListener("click", toggleMic);
 els.exportTxt.addEventListener("click", exportTxt);
 els.exportJson.addEventListener("click", exportJson);
+els.sendNotes.addEventListener("click", () => handoffNotes(notesAsPrompt()));
+els.service.addEventListener("click", (event) => {
+  const button = event.target.closest("[data-helper]");
+  if (button) setHelper(button.dataset.helper);
+});
+els.search.addEventListener("input", () => {
+  query = els.search.value;
+  renderFeed();
+});
+
+document.addEventListener("keydown", (event) => {
+  if (event.key === "Escape") {
+    if (listening) stopListening(true);
+    if (els.dialog.open) els.dialog.close();
+    if (els.copyDialog.open) els.copyDialog.close();
+    return;
+  }
+  if (typingInField() || els.dialog.open || els.copyDialog.open) return;
+  if (event.key === " " || event.code === "Space") {
+    event.preventDefault();
+    toggleMic();
+  } else if (event.key === "/" && !event.metaKey && !event.ctrlKey) {
+    event.preventDefault();
+    els.search.focus();
+  } else if (event.key.toLowerCase() === "g" && !event.metaKey && !event.ctrlKey) {
+    event.preventDefault();
+    handoffNotes(notesAsPrompt());
+  }
+});
+
+document.addEventListener("paste", (event) => {
+  if (typingInField()) return;
+  const text = event.clipboardData?.getData("text/plain");
+  if (text) {
+    event.preventDefault();
+    importPayload(text);
+  }
+});
+
+["dragenter", "dragover"].forEach((type) => {
+  document.addEventListener(type, (event) => {
+    event.preventDefault();
+    document.body.classList.add("dragover");
+  });
+});
+["dragleave", "drop"].forEach((type) => {
+  document.addEventListener(type, (event) => {
+    if (type === "drop") event.preventDefault();
+    if (type === "dragleave" && event.target !== document.body) return;
+    document.body.classList.remove("dragover");
+  });
+});
+document.addEventListener("drop", async (event) => {
+  event.preventDefault();
+  document.body.classList.remove("dragover");
+  const file = event.dataTransfer?.files?.[0];
+  if (!file) {
+    const text = event.dataTransfer?.getData("text/plain");
+    if (text) importPayload(text);
+    return;
+  }
+  importPayload(await file.text(), file.name || "");
+});
 
 if (!SpeechRecognition) {
   els.mic.classList.add("unsupported");
   els.hint.textContent = "Speech recognition needs Chrome or Edge on HTTPS.";
   els.status.textContent = "Mic unavailable";
-  els.feed.insertAdjacentHTML(
+  document.querySelector(".layout")?.insertAdjacentHTML(
     "beforebegin",
-    `<p class="banner">This browser cannot transcribe speech. Open this page in Chrome or Edge, and keep HTTPS on so the mic can run.</p>`
+    `<p class="banner">This browser cannot transcribe speech. Open this page in Chrome or Edge on HTTPS. You can still paste notes and hand them to your AI helper.</p>`
   );
-} else if (location.protocol !== "https:" && location.hostname !== "localhost") {
-  els.hint.textContent = "Microphone needs HTTPS. Open the GitHub Pages link.";
+} else if (location.protocol !== "https:" && !["localhost", "127.0.0.1"].includes(location.hostname)) {
+  els.hint.textContent = "Microphone needs HTTPS.";
+} else {
+  els.hint.textContent = readyHint();
 }
 
 window.speechSynthesis?.getVoices?.();
